@@ -50,7 +50,9 @@ class StubStatusDeterminer:
 
 
 class StubFinalValidationGate:
-    async def validate(self, claim, retrieval, analysis, determination, *, retry_count):  # type: ignore[no-untyped-def]
+    async def validate(
+        self, claim, retrieval, analysis, determination, *, retry_count, retries_remaining
+    ):  # type: ignore[no-untyped-def]
         raise _todo(PipelineStage.FINAL_VALIDATION_GATE, "Task 6")
 
 

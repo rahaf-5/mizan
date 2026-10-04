@@ -49,13 +49,25 @@ A claim ends in exactly one of three structurally separate outcomes (`domain/res
 API. `VERIFICATION_MAX_RETRIES` (default 2) is an implementation default injected into the
 orchestrator — not a domain rule.
 
-## Open decisions (need product confirmation)
+## Locked decisions
 
-1. **Retry budget exhausted.** Provisionally: if the gate still returns `retry` after the configured
-   limit, the claim ends as `SystemErrorOutcome(code=verification_incomplete)` ("verification could
-   not be completed — allow retry", spec §17), not an evidence status. Alternative: the gate must
-   abstain on the final attempt.
-2. **Out of Scope reasons.** Initial values `unsupported_claim_category`, `outside_source_coverage`.
-   The rules that decide Out of Scope vs `no_evidence_found` are not yet defined.
-3. **Evidence Strength levels.** Only signals are modelled; no levels/thresholds.
-4. **Status → result group mapping** (spec §12) is deferred to Task 7.
+1. **Retry exhaustion.** Technical failure != weak or missing evidence.
+   - Technical/system failure preventing reliable verification after retries are exhausted →
+     `SystemErrorOutcome(code=verification_incomplete)`.
+   - System operated correctly and the remaining limitation is evidentiary → the gate abstains
+     internally and maps to an approved status (e.g. `insufficient_evidence`, `no_evidence_found`).
+   - The gate receives `retries_remaining` so it can abstain instead of requesting a retry it
+     cannot get. Retry is never automatically converted into Abstain.
+2. **Out of Scope** (separate processing outcome, never a seventh status):
+   - unsupported claim category → `out_of_scope` (`unsupported_claim_category`)
+   - requires sources outside the Trusted Sources Policy → `out_of_scope` (`outside_source_coverage`)
+   - supported type, qualified sources searched successfully, no suitable evidence → `no_evidence_found`
+   - relevant evidence found but not sufficient → `insufficient_evidence`
+   - extensible with further explicit reasons (with approval).
+3. **Quranpedia / Dorar** remain unresolved integration requirements until addressed before
+   Task 5 (no invented APIs, endpoints, keys, scraping, caching or indexing rights).
+
+## Open decisions
+
+1. **Evidence Strength levels.** Only signals are modelled; no levels/thresholds.
+2. **Status → result group mapping** (spec §12) is deferred to Task 7.

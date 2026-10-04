@@ -91,7 +91,19 @@ class StatusDeterminer(Protocol):
 
 @runtime_checkable
 class FinalValidationGate(Protocol):
-    """Validate the result (pass / retry / abstain). Creates no evidence."""
+    """Validate the result (pass / retry / abstain). Creates no evidence.
+
+    Locked retry-exhaustion rule (technical failure != weak or missing evidence):
+      * `retries_remaining` tells the gate how many bounded retries are left
+        (from configuration, never hardcoded).
+      * When the system operated correctly and the remaining limitation is
+        evidentiary, the gate must ABSTAIN (internally) and map to the
+        appropriate approved status, e.g. insufficient_evidence or
+        no_evidence_found — it must not return `retry` with no budget left.
+      * Returning `retry` with retries_remaining == 0 is reserved for a
+        technical/system failure that prevents reliable verification; the
+        orchestrator turns it into system_error(verification_incomplete).
+    """
 
     async def validate(
         self,
@@ -101,6 +113,7 @@ class FinalValidationGate(Protocol):
         determination: StatusDetermination,
         *,
         retry_count: int,
+        retries_remaining: int,
     ) -> FinalValidationResult: ...
 
 

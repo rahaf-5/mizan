@@ -176,9 +176,15 @@ class RetryReason(_StrEnum):
 class OutOfScopeReason(_StrEnum):
     """Why a claim is outside the current MVP's capabilities or source coverage.
 
-    Out of Scope is a processing/routing outcome, NOT a verification status,
-    and never means False. Initial representation; the rules that decide it
-    are defined in later tasks.
+    Out of Scope is a separate processing/routing outcome, NOT a verification
+    status, and never means False. Locked rules:
+      * claim category the MVP does not support      -> out_of_scope (unsupported_claim_category)
+      * claim requires sources outside the Trusted
+        Sources Policy                               -> out_of_scope (outside_source_coverage)
+      * supported claim type, qualified sources searched
+        successfully, no suitable evidence           -> no_evidence_found (a status, not this)
+      * relevant evidence found but not sufficient   -> insufficient_evidence (a status, not this)
+    Extensible: further explicit reasons may be added with approval.
     """
 
     UNSUPPORTED_CLAIM_CATEGORY = "unsupported_claim_category"

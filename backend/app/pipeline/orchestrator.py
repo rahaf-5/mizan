@@ -7,10 +7,13 @@ limited to rules stated in the spec:
   * technical failures become SystemErrorOutcome, never an evidence status (spec §17);
   * Out of Scope from classification/routing is passed through as its own outcome.
 
-PROVISIONAL (needs product confirmation, see README "Open decisions"):
-when the retry budget is exhausted and the gate still asks to retry, the claim
-ends as SystemErrorOutcome(code=verification_incomplete) — "verification could
-not be completed, allow retry" (spec §17) — rather than any evidence status.
+Retry exhaustion (LOCKED decision, see FinalValidationGate):
+  * evidentiary limitation -> the gate abstains internally and maps to an
+    approved status (e.g. insufficient_evidence / no_evidence_found);
+  * technical/system failure preventing reliable verification -> the gate may
+    still return `retry` with no budget left, and the claim ends as
+    SystemErrorOutcome(code=verification_incomplete).
+Technical failure != weak or missing evidence.
 """
 
 from __future__ import annotations
@@ -96,13 +99,20 @@ class VerificationPipeline:
             analysis = await self._s.analyzer.analyze(claim, assessments)
             determination = await self._s.status.determine(claim, analysis, retrieval)
             validation = await self._s.gate.validate(
-                claim, retrieval, analysis, determination, retry_count=retry_count
+                claim,
+                retrieval,
+                analysis,
+                determination,
+                retry_count=retry_count,
+                retries_remaining=self._max_retries - retry_count,
             )
             if validation.outcome != ValidationOutcome.RETRY:
                 return await self._s.builder.build(
                     claim, retrieval, analysis, determination, validation
                 )
             if retry_count >= self._max_retries:
+                # Gate still requests retry with no budget left: per the gate
+                # contract this signals a technical limitation, not evidence.
                 return SystemErrorOutcome(
                     claim_id=claim.claim_id,
                     error=SystemErrorInfo(

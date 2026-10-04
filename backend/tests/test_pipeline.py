@@ -14,7 +14,7 @@ from app.domain.enums import (
     VerificationStatus,
 )
 from app.domain.errors import ClaimNotConfirmedError, SourceUnavailableError
-from app.domain.results import OutOfScopeOutcome, SystemErrorOutcome
+from app.domain.results import OutOfScopeOutcome, SystemErrorOutcome, VerificationOutcome
 from app.domain.retrieval import RetrievalResult
 from app.domain.routing import SourceRoute, SourceRoutingPlan
 from app.domain.trusted_sources import TrustedSourceId
@@ -132,7 +132,13 @@ class FakeStatus:
 
 
 class AlwaysRetryGate:
-    async def validate(self, claim, retrieval, analysis, determination, *, retry_count):
+    def __init__(self):
+        self.remaining_seen = []
+
+    async def validate(
+        self, claim, retrieval, analysis, determination, *, retry_count, retries_remaining
+    ):
+        self.remaining_seen.append(retries_remaining)
         return FinalValidationResult(
             claim_id=claim.claim_id,
             outcome=ValidationOutcome.RETRY,
@@ -141,7 +147,7 @@ class AlwaysRetryGate:
         )
 
 
-def make_pipeline(max_retries=2, classifier=None, retriever=None):
+def make_pipeline(max_retries=2, classifier=None, retriever=None, gate=None, builder=None):
     return VerificationPipeline(
         PipelineStages(
             classifier=classifier or FakeClassifier(),
@@ -150,8 +156,8 @@ def make_pipeline(max_retries=2, classifier=None, retriever=None):
             verifier=FakeVerifier(),
             analyzer=FakeAnalyzer(),
             status=FakeStatus(),
-            gate=AlwaysRetryGate(),
-            builder=stubs.StubResultBuilder(),
+            gate=gate or AlwaysRetryGate(),
+            builder=builder or stubs.StubResultBuilder(),
         ),
         max_retries=max_retries,
     )
@@ -181,3 +187,51 @@ async def test_out_of_scope_passes_through_as_its_own_outcome():
     [outcome] = result.outcomes
     assert isinstance(outcome, OutOfScopeOutcome)
     assert outcome.kind == "out_of_scope"
+
+
+async def test_gate_is_told_remaining_retry_budget():
+    gate = AlwaysRetryGate()
+    await make_pipeline(max_retries=2, gate=gate).run([confirmed_claim()])
+    assert gate.remaining_seen == [2, 1, 0]
+
+
+class AbstainWhenBudgetExhaustedGate:
+    """Evidentiary limitation: retry while budget remains, then abstain (locked rule)."""
+
+    async def validate(
+        self, claim, retrieval, analysis, determination, *, retry_count, retries_remaining
+    ):
+        if retries_remaining > 0:
+            return FinalValidationResult(
+                claim_id=claim.claim_id,
+                outcome=ValidationOutcome.RETRY,
+                retry_count=retry_count,
+                retry_reason=RetryReason.WEAK_RETRIEVAL,
+            )
+        return FinalValidationResult(
+            claim_id=claim.claim_id,
+            outcome=ValidationOutcome.ABSTAIN,
+            retry_count=retry_count,
+            abstained_to=VerificationStatus.NO_EVIDENCE_FOUND,
+        )
+
+
+class PassThroughBuilder:
+    async def build(self, claim, retrieval, analysis, determination, validation):
+        return VerificationOutcome(
+            claim_id=claim.claim_id,
+            confirmed_claim_text=claim.confirmed_claim_text,
+            status=determination.status,
+            analysis=analysis,
+            validation=validation,
+        )
+
+
+async def test_evidentiary_exhaustion_abstains_to_status_not_system_error():
+    result = await make_pipeline(
+        max_retries=1, gate=AbstainWhenBudgetExhaustedGate(), builder=PassThroughBuilder()
+    ).run([confirmed_claim()])
+    [outcome] = result.outcomes
+    assert isinstance(outcome, VerificationOutcome)
+    assert outcome.status == VerificationStatus.NO_EVIDENCE_FOUND
+    assert outcome.validation.outcome == ValidationOutcome.ABSTAIN
