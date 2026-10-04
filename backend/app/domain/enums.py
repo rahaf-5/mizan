@@ -73,6 +73,38 @@ class AsbabRelationType(_StrEnum):
 
     DIRECT_SABAB = "direct_sabab"
     CONTEXTUAL = "contextual"
+    #: The provider does not state the relation. Approved 2026-10-04: Quranpedia
+    #: asbab content is always `unspecified`; "direct cause" is NEVER inferred by
+    #: an LLM or a heuristic.
+    UNSPECIFIED = "unspecified"
+
+
+class QuranTextForm(_StrEnum):
+    """What kind of Quran text an Evidence record carries (no mislabelling as Uthmani).
+
+    Approved 2026-10-04: the MVP uses Quranpedia Mushaf 1 (Hafs, matching the King
+    Fahd Complex print), whose text is fully diacritized but NOT in Uthmani rasm.
+    """
+
+    MUSHAF_DIACRITIZED = "mushaf_diacritized"
+
+
+class RetrievalChannel(_StrEnum):
+    """How an Evidence record's text was obtained from its provider."""
+
+    #: Official, versioned provider dump (checksum-verified, kept in sync).
+    OFFICIAL_DUMP = "official_dump"
+    #: Live request to the provider's official API (no lasting cache).
+    LIVE_API = "live_api"
+
+
+class SourceAvailability(_StrEnum):
+    """Product-level availability of an approved source (policy, not a status)."""
+
+    AVAILABLE = "available"
+    #: Approved but currently not usable (e.g. Dorar: blocked pending record ids
+    #: and permission). Claims that require it end as `required_source_unavailable`.
+    UNAVAILABLE = "unavailable"
 
 
 # --- Retrieval (spec §6) ----------------------------------------------------
@@ -82,6 +114,23 @@ class RetrievalMethod(_StrEnum):
     EXACT = "exact"
     KEYWORD = "keyword"
     SEMANTIC = "semantic"
+
+
+class RetrievalMatchBasis(_StrEnum):
+    """Why retrieval looked at a record (audit trail; NOT a relevance verdict).
+
+    For tafsir/asbab passages this is the basis of the ayah anchor the passage
+    was fetched for.
+    """
+
+    #: The claim (or the ayah it quotes) contains text found verbatim (normalised) in the ayah.
+    QUOTED_TEXT = "quoted_text"
+    #: The claim/user explicitly names the surah and ayah number.
+    EXPLICIT_REFERENCE = "explicit_reference"
+    #: An LLM retrieval hint, validated against the official Quran source. Never evidence.
+    RETRIEVAL_HINT = "retrieval_hint"
+    #: Keyword overlap only (weakest basis).
+    KEYWORD = "keyword"
 
 
 class RetrievalAttemptStatus(_StrEnum):

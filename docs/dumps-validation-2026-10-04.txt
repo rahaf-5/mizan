@@ -1,0 +1,188 @@
+=== QURANPEDIA OFFICIAL DUMPS (https://quranpedia.net/dumps?lang=en) ===
+manifest version: 2026-10-02; license: {"attribution": "Republishing this data — in full or in part — as a downloadable database/dataset requires crediting Quranpedia.net as the source with a link to https://quranpedia.net. Use inside apps needs no attribution (appreciated, never required).", "freshness": "Content is continuously corrected. State this dump version when republishing and re-sync via https://quranpedia.net/api/v1/changes?since=2026-10-02", "contact": "quranpedia.help@gmail.com"}
+
+[asbab-book-2919.json.gz] HTTP 200, 253782 bytes
+  sha256 matches manifest: True
+  - top-level: {"license": {"source": "<str 22 chars> 'https://quranpedia.net'", "version": "<str 10 chars> '2026-08-10'", "en": "<str 818 chars> 'Ownership: the classical works in this data (Quran text, can'", "ar": "<str 843 chars> 'الملكية: النصوص التراثية المضمَّنة في هذه البيانات — من نصِّ'", "sources": {"<array: 2 items> first": "<object: 5 keys>"}, "contact": "<str 25 chars> 'quranpedia.help@gmail.com'", "usage_policy": "<str 44 chars> 'https://quranpedia.net/api-docs#usage-policy'", "resync": "<str 54 chars> 'https://quranpedia.net/api/v1/changes?since=2026-08-10'"}, "book": {"id": 2919, "name": "<str 27 chars> 'أسباب نزول القرآن - الواحدي'", "short_name": "<str 0 chars> ''", "parts": 1, "publish_year": null, "edition": "<str 0 chars> ''", "nasher": "<str 0 chars> ''", "author": null, "mohaqeq": null, "introducer": null, "reviewer": null, "translator": null, "language": "<object: 4 keys>"}, "schema": "<str 33 chars> '/v1/ayah/{surah}/{ayah}/book/2919'", "ayahs": {"<array: 564 items> first": "<object: 3 keys>"}}
+  - record list at: ayahs (564 records)
+  - first record: {"surah": 1, "ayah": 1, "content": {"<array: 1 items> first": {"text": "<str 3845 chars> 'القولُ في آية التسمية وبيان نزولها<br />\\r\\\\nأخبرنا أحمد بن محم'", "part": "<str 1 chars> '1'", "page": 2, "ayahs": "<str 13 chars> '1,2,3,4,5,6,7'"}}}
+  - content items: 564; keys (union): ['ayahs', 'page', 'part', 'text']
+  - content item id-like keys: NONE
+  - (part, page, ayahs) unique: False (447/564)
+  - 'ayahs' non-single values: 157 e.g. ['1,2,3,4,5,6,7', '1,2,3,4,5,6,7', '1,2,3,4,5,6,7', '1,2,3,4,5,6,7', '1,2,3,4,5,6,7']
+  - duplicate texts across items: 118
+
+[asbab-book-460.json.gz] HTTP 200, 454839 bytes
+  sha256 matches manifest: True
+  - top-level: {"license": {"source": "<str 22 chars> 'https://quranpedia.net'", "version": "<str 10 chars> '2026-08-10'", "en": "<str 818 chars> 'Ownership: the classical works in this data (Quran text, can'", "ar": "<str 843 chars> 'الملكية: النصوص التراثية المضمَّنة في هذه البيانات — من نصِّ'", "sources": {"<array: 2 items> first": "<object: 5 keys>"}, "contact": "<str 25 chars> 'quranpedia.help@gmail.com'", "usage_policy": "<str 44 chars> 'https://quranpedia.net/api-docs#usage-policy'", "resync": "<str 54 chars> 'https://quranpedia.net/api/v1/changes?since=2026-08-10'"}, "book": {"id": 460, "name": "<str 48 chars> 'المحرر في أسباب نزول القرآن من خلال الكتب التسعة'", "short_name": "<str 27 chars> 'المحرر في أسباب نزول القرآن'", "parts": "<str 2 chars> ' 2'", "publish_year": null, "edition": "<str 25 chars> 'الأولى، (1427 ه - 2006 م)'", "nasher": "<str 49 chars> 'دار ابن الجوزي، الدمام - المملكة العربية السعودية'", "author": "<object: 3 keys>", "mohaqeq": null, "introducer": null, "reviewer": null, "translator": null, "language": "<object: 4 keys>"}, "schema": "<str 32 chars> '/v1/ayah/{surah}/{ayah}/book/460'", "ayahs": {"<array: 198 items> first": "<object: 3 keys>"}}
+  - record list at: ayahs (198 records)
+  - first record: {"surah": 108, "ayah": 1, "content": {"<array: 5 items> first": {"text": "<str 1211 chars> 'سورة الكوثر<br />\\r١٩٨ - قال الله تعالى: (إِنَّا أَعْطَيْنَاك'", "part": "<str 1 chars> '2'", "page": 1095, "ayahs": "<str 4 chars> '6205'"}}}
+  - content items: 1007; keys (union): ['ayahs', 'page', 'part', 'text']
+  - content item id-like keys: NONE
+  - (part, page, ayahs) unique: True (1007/1007)
+  - 'ayahs' non-single values: 0 e.g. []
+  - duplicate texts across items: 0
+
+[tafsir-book-32.json.gz] HTTP 200, 609979 bytes
+  sha256 matches manifest: True
+  - top-level: {"license": {"source": "<str 22 chars> 'https://quranpedia.net'", "version": "<str 10 chars> '2026-08-10'", "en": "<str 818 chars> 'Ownership: the classical works in this data (Quran text, can'", "ar": "<str 843 chars> 'الملكية: النصوص التراثية المضمَّنة في هذه البيانات — من نصِّ'", "sources": {"<array: 2 items> first": "<object: 5 keys>"}, "contact": "<str 25 chars> 'quranpedia.help@gmail.com'", "usage_policy": "<str 44 chars> 'https://quranpedia.net/api-docs#usage-policy'", "resync": "<str 54 chars> 'https://quranpedia.net/api/v1/changes?since=2026-08-10'"}, "book": {"id": 32, "name": "<str 14 chars> 'التفسير الميسر'", "short_name": "<str 14 chars> 'التفسير الميسر'", "parts": "<str 2 chars> ' 1'", "publish_year": "<str 4 chars> '1430'", "edition": "<str 7 chars> 'الثانية'", "nasher": "<str 46 chars> 'مجمع الملك فهد لطباعة المصحف الشريف - السعودية'", "author": "<object: 3 keys>", "mohaqeq": null, "introducer": null, "reviewer": null, "translator": null, "language": "<object: 4 keys>"}, "schema": "<str 31 chars> '/v1/ayah/{surah}/{ayah}/book/32'", "ayahs": {"<array: 5042 items> first": "<object: 3 keys>"}}
+  - record list at: ayahs (5042 records)
+  - first record: {"surah": 1, "ayah": 1, "content": {"<array: 1 items> first": {"text": "<str 447 chars> 'سورة الفاتحة سميت هذه السورة بالفاتحة; لأنه يفتتح بها القرآن'", "part": "<str 1 chars> '1'", "page": 1, "image": "<str 82 chars> 'https://wikiquran.nyc3.digitaloceanspaces.com/attachments/bo'", "ayahs": "<str 1 chars> '1'"}}}
+  - content items: 5055; keys (union): ['ayahs', 'image', 'page', 'part', 'text']
+  - content item id-like keys: NONE
+  - (part, page, ayahs) unique: True (5055/5055)
+  - 'ayahs' non-single values: 0 e.g. []
+  - duplicate texts across items: 25
+
+[tafsir-book-2012.json.gz] HTTP 200, 630294 bytes
+  sha256 matches manifest: True
+  - top-level: {"license": {"source": "<str 22 chars> 'https://quranpedia.net'", "version": "<str 10 chars> '2026-08-10'", "en": "<str 818 chars> 'Ownership: the classical works in this data (Quran text, can'", "ar": "<str 843 chars> 'الملكية: النصوص التراثية المضمَّنة في هذه البيانات — من نصِّ'", "sources": {"<array: 2 items> first": "<object: 5 keys>"}, "contact": "<str 25 chars> 'quranpedia.help@gmail.com'", "usage_policy": "<str 44 chars> 'https://quranpedia.net/api-docs#usage-policy'", "resync": "<str 54 chars> 'https://quranpedia.net/api/v1/changes?since=2026-08-10'"}, "book": {"id": 2012, "name": "<str 14 chars> 'التفسير الميسر'", "short_name": "<str 30 chars> 'اللغة العربية - التفسير الميسر'", "parts": 1, "publish_year": null, "edition": "<str 0 chars> ''", "nasher": "<str 0 chars> ''", "author": "<object: 3 keys>", "mohaqeq": null, "introducer": null, "reviewer": null, "translator": null, "language": "<object: 4 keys>"}, "schema": "<str 33 chars> '/v1/ayah/{surah}/{ayah}/book/2012'", "ayahs": {"<array: 6236 items> first": "<object: 3 keys>"}}
+  - record list at: ayahs (6236 records)
+  - first record: {"surah": 1, "ayah": 1, "content": {"<array: 1 items> first": {"text": "<str 312 chars> 'أبتدئ قراءة القرآن باسم الله مستعينا به، (اللهِ) علم على الر'", "part": "<str 1 chars> '1'", "page": 1, "ayahs": "<str 1 chars> '1'"}}}
+  - content items: 6236; keys (union): ['ayahs', 'page', 'part', 'text']
+  - content item id-like keys: NONE
+  - (part, page, ayahs) unique: True (6236/6236)
+  - 'ayahs' non-single values: 0 e.g. []
+  - duplicate texts across items: 993
+
+[tafsir-book-136.json.gz] HTTP 200, 8335420 bytes
+  sha256 matches manifest: True
+  - top-level: {"license": {"source": "<str 22 chars> 'https://quranpedia.net'", "version": "<str 10 chars> '2026-08-10'", "en": "<str 818 chars> 'Ownership: the classical works in this data (Quran text, can'", "ar": "<str 843 chars> 'الملكية: النصوص التراثية المضمَّنة في هذه البيانات — من نصِّ'", "sources": {"<array: 2 items> first": "<object: 5 keys>"}, "contact": "<str 25 chars> 'quranpedia.help@gmail.com'", "usage_policy": "<str 44 chars> 'https://quranpedia.net/api-docs#usage-policy'", "resync": "<str 54 chars> 'https://quranpedia.net/api/v1/changes?since=2026-08-10'"}, "book": {"id": 136, "name": "<str 19 chars> 'تفسير القرآن العظيم'", "short_name": "<str 14 chars> 'تفسير ابن كثير'", "parts": "<str 1 chars> '8'", "publish_year": "<str 4 chars> '1420'", "edition": "<str 7 chars> 'الثانية'", "nasher": "<str 23 chars> 'دار طيبة للنشر والتوزيع'", "author": "<object: 3 keys>", "mohaqeq": "<str 10 chars> 'سامي سلامة'", "introducer": null, "reviewer": null, "translator": null, "language": "<object: 4 keys>"}, "schema": "<str 32 chars> '/v1/ayah/{surah}/{ayah}/book/136'", "ayahs": {"<array: 6057 items> first": "<object: 3 keys>"}}
+  - record list at: ayahs (6057 records)
+  - first record: {"surah": 1, "ayah": 1, "content": {"<array: 26 items> first": {"text": "<str 3995 chars> '<p class=\"text-center\">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ'", "part": "<str 1 chars> '1'", "page": 101, "ayahs": "<str 1 chars> '1'"}}}
+  - content items: 9166; keys (union): ['ayahs', 'page', 'part', 'text']
+  - content item id-like keys: NONE
+  - (part, page, ayahs) unique: False (5324/9166)
+  - 'ayahs' non-single values: 0 e.g. []
+  - duplicate texts across items: 133
+
+[tafsir-book-331.json.gz] HTTP 200, 11658183 bytes
+  sha256 matches manifest: True
+  - top-level: {"license": {"source": "<str 22 chars> 'https://quranpedia.net'", "version": "<str 10 chars> '2026-08-10'", "en": "<str 818 chars> 'Ownership: the classical works in this data (Quran text, can'", "ar": "<str 843 chars> 'الملكية: النصوص التراثية المضمَّنة في هذه البيانات — من نصِّ'", "sources": {"<array: 2 items> first": "<object: 5 keys>"}, "contact": "<str 25 chars> 'quranpedia.help@gmail.com'", "usage_policy": "<str 44 chars> 'https://quranpedia.net/api-docs#usage-policy'", "resync": "<str 54 chars> 'https://quranpedia.net/api/v1/changes?since=2026-08-10'"}, "book": {"id": 331, "name": "<str 19 chars> 'تفسير القرآن العظيم'", "short_name": "<str 24 chars> 'تفسير ابن كثير ط العلمية'", "parts": 1, "publish_year": null, "edition": "<str 15 chars> 'الأولى - 1419 ه'", "nasher": "<str 49 chars> 'دار الكتب العلمية، منشورات محمد علي بيضون - بيروت'", "author": "<object: 3 keys>", "mohaqeq": "<str 19 chars> 'محمد حسين شمس الدين'", "introducer": null, "reviewer": null, "translator": null, "language": "<object: 4 keys>"}, "schema": "<str 32 chars> '/v1/ayah/{surah}/{ayah}/book/331'", "ayahs": {"<array: 6228 items> first": "<object: 3 keys>"}}
+  - record list at: ayahs (6228 records)
+  - first record: {"surah": 1, "ayah": 1, "content": {"<array: 11 items> first": {"text": "<str 3978 chars> 'يَتَبَخْتَرُ بِهِ فَجَعَلَ يَضْرِبُهُ فَلَا يَزْدَادُ إِلَّا'", "part": "<str 1 chars> '1'", "page": 31, "ayahs": "<str 1 chars> '1'"}}}
+  - content items: 17591; keys (union): ['ayahs', 'page', 'part', 'text']
+  - content item id-like keys: NONE
+  - (part, page, ayahs) unique: False (4377/17591)
+  - 'ayahs' non-single values: 16744 e.g. ['3,4', '3,4', '3,4', '3,4', '1365,1366']
+  - duplicate texts across items: 13214
+
+[surahs.json.gz] HTTP 200, 192635 bytes
+  sha256 matches manifest: False
+  - top-level: {"license": {"source": "<str 22 chars> 'https://quranpedia.net'", "version": "<str 10 chars> '2026-10-03'", "en": "<str 818 chars> 'Ownership: the classical works in this data (Quran text, can'", "ar": "<str 843 chars> 'الملكية: النصوص التراثية المضمَّنة في هذه البيانات — من نصِّ'", "sources": {"<array: 2 items> first": "<object: 5 keys>"}, "contact": "<str 25 chars> 'quranpedia.help@gmail.com'", "usage_policy": "<str 44 chars> 'https://quranpedia.net/api-docs#usage-policy'", "resync": "<str 54 chars> 'https://quranpedia.net/api/v1/changes?since=2026-10-03'"}, "schema": "<str 29 chars> '/v1/surah/information/{surah}'", "data": {"<array: 114 items> first": "<object: 2 keys>"}}
+  - record list at: data (114 records)
+  - first record: {"surah": 1, "information": {"introduction": {"title": "<str 14 chars> 'نبذة عن السورة'", "value": "<str 660 chars> '<p> سورةُ (الفاتحةِ) أعظمُ سورةٍ في القرآن الكريم، خصَّ الله'"}, "surah_number": {"title": "<str 15 chars> 'ترتيبها المصحفي'", "value": "<str 1 chars> '1'"}, "surah_type": {"title": "<str 5 chars> 'نوعها'", "value": "<str 4 chars> 'مكية'"}, "words_count": {"title": "<str 8 chars> ' ألفاظها'", "value": "<str 2 chars> '29'"}, "descent": {"title": "<str 12 chars> 'ترتيب نزولها'", "value": "<str 1 chars> '5'"}, "grace": {"title": "<str 5 chars> 'فضلها'", "value": "<str 3237 chars> '<p> * أفضَلُ سورةٍ في القرآن الكريم:</p><p>فعن أبي سعيدِ بن '"}, "prophet": {"title": "<str 43 chars> 'ما تعلق بها من هدي النبي صلى الله عليه وسلم'", "value": "<str 479 chars> '<p> * تعلَّقتْ هذه السُّورةُ بشكلٍ يومي بقراءة النبيِّ ﷺ في '"}, "revelation": {"title": "<str 12 chars> 'أسباب النزول'", "value": null}, "topics": {"title": "<str 9 chars> 'موضوعاتها'", "value": "<str 1956 chars> '<p> اشتمَلتْ هذه السُّورةُ على عدَّةِ موضوعات هي أصولٌ عظيمة'"}, "purposes": {"title": "<str 7 chars> 'مقاصدها'", "value": "<str 1305 chars> '<p> بسببِ ما لهذه السورةِ من فضائلَ عظيمة، جاءت مقاصدُها جام'"}, "asmaoha": {"title": "<str 7 chars> 'أسماؤها'", "value": "<str 2256 chars> '<p> أُطلِقَ على هذه السُّورةِ الكريمة أسماءٌ كثيرة؛ منها:</p'"}, "ayahs_count": {"<array: 5 items> first": "<object: 2 keys>"}}}
+
+[books.json.gz] HTTP 200, 2371551 bytes
+  sha256 matches manifest: False
+  - top-level: {"license": {"source": "<str 22 chars> 'https://quranpedia.net'", "version": "<str 10 chars> '2026-10-03'", "en": "<str 818 chars> 'Ownership: the classical works in this data (Quran text, can'", "ar": "<str 843 chars> 'الملكية: النصوص التراثية المضمَّنة في هذه البيانات — من نصِّ'", "sources": {"<array: 2 items> first": "<object: 5 keys>"}, "contact": "<str 25 chars> 'quranpedia.help@gmail.com'", "usage_policy": "<str 44 chars> 'https://quranpedia.net/api-docs#usage-policy'", "resync": "<str 54 chars> 'https://quranpedia.net/api/v1/changes?since=2026-10-03'"}, "schema": "<str 15 chars> '/v1/book/{book}'", "data": {"<array: 16296 items> first": "<object: 20 keys>"}}
+  - record list at: data (16296 records)
+  - first record: {"id": 1, "name": "<str 13 chars> 'تيسير التفسير'", "short_name": "<str 6 chars> 'القطان'", "type": "<str 6 chars> 'tafsir'", "language": {"id": 1, "name": "<str 7 chars> 'العربية'", "code": "<str 2 chars> 'ar'", "direction": "<str 3 chars> 'rtl'"}, "category": {"id": 2, "name": "<str 7 chars> 'التفسير'", "parent_id": null}, "parts": 1, "publish_year": null, "edition": "<str 0 chars> ''", "nasher": "<str 0 chars> ''", "has_image": 0, "about": null, "author": {"id": 1050, "ar_name": "<str 14 chars> 'إبراهيم القطان'", "full_name": "<str 14 chars> 'إبراهيم القطان'"}, "mohaqeq": null, "introducer": null, "reviewer": null, "translator": null, "contents_url": "<str 49 chars> 'https://quranpedia.net/books-contents/book-1.json'", "book_attachments": "<array: 0 items>", "relative_ayah_service": "<str 6 chars> 'tafsir'"}
+  - book 32: author=null edition=None nasher=None
+  - book 32: author={"id": 1063, "ar_name": "مجموعة من المؤلفين", "full_name": null} edition='الثانية' nasher='مجمع الملك فهد لطباعة المصحف الشريف - السعودية'
+  - book 32: author=null edition=None nasher=None
+  - book 136: author={"id": 7634, "ar_name": "ابن كثير", "full_name": "أبو الفداء إسماعيل بن عمر بن كثير القرشي البصري ثم الدمشقي"} edition='الثانية' nasher='دار طيبة للنشر والتوزيع'
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 136: author=null edition=None nasher=None
+  - book 331: author={"id": 7634, "ar_name": "ابن كثير", "full_name": "أبو الفداء إسماعيل بن عمر بن كثير القرشي البصري ثم الدمشقي"} edition='الأولى - 1419 ه' nasher='دار الكتب العلمية، منشورات محمد علي بيضون - بيروت'
+  - book 32: author=null edition=None nasher=None
+  - book 460: author={"id": 510, "ar_name": "خالد بن سليمان المزيني", "full_name": null} edition='الأولى، (1427 ه - 2006 م)' nasher='دار ابن الجوزي، الدمام - المملكة العربية السعودية'
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 2012: author={"id": 14362, "ar_name": "مجمع الملك فهد لطباعة المصحف الشريف", "full_name": null} edition='' nasher=''
+  - book 460: author=null edition=None nasher=None
+  - book 2919: author=null edition=None nasher=None
+  - book 2919: author=null edition='' nasher=''
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+  - book 32: author=null edition=None nasher=None
+
+[changes since 2025-10-09] HTTP 200
+  ayah_book_contents: count=1000 truncated=True
+    row: {"book": 27803, "surah": 34, "ayah": 1, "changed_at": "2026-02-24 23:45:48", "refetch": "/v1/ayah/34/1/book/27803"}
+    row: {"book": 27803, "surah": 34, "ayah": 3, "changed_at": "2026-02-24 23:45:48", "refetch": "/v1/ayah/34/3/book/27803"}
+    row: {"book": 27803, "surah": 34, "ayah": 4, "changed_at": "2026-02-24 23:45:48", "refetch": "/v1/ayah/34/4/book/27803"}
+  books: count=2 truncated=False
+    row: {"book": 24108, "changed_at": "2026-08-13 13:34:53", "refetch": "/v1/book/24108"}
+    row: {"book": 27835, "changed_at": "2026-08-13 13:34:53", "refetch": "/v1/book/27835"}
+
+Done. failed downloads: 0

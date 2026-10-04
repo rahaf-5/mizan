@@ -4,6 +4,9 @@ A claim ends in exactly one of three structurally separate outcomes:
   - VerificationOutcome : one of the six evidence-based statuses (validated)
   - OutOfScopeOutcome   : outside MVP capabilities/source coverage (NOT a status, NOT False)
   - SystemErrorOutcome  : technical failure (NOT insufficient_evidence)
+  - RequiredSourceUnavailableOutcome : the claim is within scope, but a trusted source it
+    REQUIRES is currently unavailable (e.g. Hadith/Dorar). Mizan abstains explicitly.
+    NOT a status, NOT out of scope, NOT a system error, NOT contradiction/falsehood.
 """
 
 from __future__ import annotations
@@ -14,6 +17,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.domain.enums import (
+    ClaimType,
     OutOfScopeReason,
     ResultGroup,
     ValidationOutcome,
@@ -21,6 +25,7 @@ from app.domain.enums import (
 )
 from app.domain.errors import SystemErrorInfo
 from app.domain.evidence import Evidence
+from app.domain.trusted_sources import TrustedSourceId, get_trusted_source
 from app.domain.validation import FinalValidationResult
 from app.domain.verification import AnalysisResult
 
@@ -82,8 +87,36 @@ class SystemErrorOutcome(BaseModel):
     error: SystemErrorInfo
 
 
+class RequiredSourceUnavailableOutcome(BaseModel):
+    """Explicit abstention: a REQUIRED trusted source is currently unavailable.
+
+    The claim may be fully within Mizan's scope. Absence of evidence from an
+    unavailable source is never contradiction, falsehood or ordinary
+    insufficient/no evidence. No verdict is produced for the claim.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["required_source_unavailable"] = "required_source_unavailable"
+    claim_id: str
+    confirmed_claim_text: str = Field(min_length=1)
+    #: Every claim type the claim requires (e.g. quran + hadith for a composite claim).
+    required_claim_types: list[ClaimType] = Field(min_length=1)
+    #: The required approved sources that are unavailable.
+    unavailable_sources: list[TrustedSourceId] = Field(min_length=1)
+    detail: str | None = None
+
+    @model_validator(mode="after")
+    def _really_required_and_unavailable(self) -> RequiredSourceUnavailableOutcome:
+        for sid in self.unavailable_sources:
+            src = get_trusted_source(sid)
+            if not (src.qualified_for & set(self.required_claim_types)):
+                raise ValueError(f"{sid.value} is not required by this claim's types")
+        return self
+
+
 ClaimOutcome = Annotated[
-    VerificationOutcome | OutOfScopeOutcome | SystemErrorOutcome,
+    VerificationOutcome | OutOfScopeOutcome | SystemErrorOutcome | RequiredSourceUnavailableOutcome,
     Field(discriminator="kind"),
 ]
 

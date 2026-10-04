@@ -10,9 +10,9 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.domain.enums import RetrievalAttemptStatus, RetrievalMethod
+from app.domain.enums import RetrievalAttemptStatus, RetrievalMatchBasis, RetrievalMethod
 from app.domain.errors import SystemErrorInfo
-from app.domain.evidence import Evidence
+from app.domain.evidence import AyahRef, Evidence
 from app.domain.trusted_sources import TrustedSourceId
 
 
@@ -26,6 +26,10 @@ class RetrievalMetadata(BaseModel):
     #: Rank after merge/dedup. Ranking prioritises verification; not a truth score.
     retrieval_rank: Annotated[int, Field(ge=1)]
     searched_source: TrustedSourceId
+    #: Why this record was looked at (audit trail; not a relevance verdict).
+    match_basis: RetrievalMatchBasis | None = None
+    #: For tafsir/asbab passages: the validated ayah the passage was fetched for.
+    anchor_ayah: AyahRef | None = None
 
 
 class CandidateEvidence(BaseModel):
@@ -78,6 +82,12 @@ class RetrievalResult(BaseModel):
     attempts: list[RetrievalAttempt] = Field(default_factory=list)
     #: Recorded when retrieval stayed weak after the allowed strategies (spec §6).
     insufficient_retrieval: bool = False
+    #: Ayahs (validated against the official Quran source) used to anchor retrieval.
+    anchor_ayahs: list[AyahRef] = Field(default_factory=list)
+    #: LLM retrieval hints rejected because they do not exist in the official Quran source.
+    discarded_hint_count: int = Field(default=0, ge=0)
+    #: Semantic search is not available in the MVP; recorded so that its absence is explicit.
+    semantic_search_attempted: bool = False
 
     @property
     def all_attempts_failed(self) -> bool:

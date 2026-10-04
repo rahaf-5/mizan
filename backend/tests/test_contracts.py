@@ -73,7 +73,8 @@ def test_claim_enums_exact():
 
 def test_retrieval_methods_and_asbab_relation():
     assert values(RetrievalMethod) == ["exact", "keyword", "semantic"]
-    assert values(AsbabRelationType) == ["direct_sabab", "contextual"]
+    # `unspecified` approved 2026-10-04: never infer "direct cause".
+    assert values(AsbabRelationType) == ["direct_sabab", "contextual", "unspecified"]
 
 
 def test_validation_gate_contract():

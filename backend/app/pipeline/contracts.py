@@ -17,7 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.claim import Claim, ClassifiedClaim, ConfirmedClaim
 from app.domain.inputs import ExtractionInput
-from app.domain.results import ClaimOutcome, OutOfScopeOutcome
+from app.domain.results import ClaimOutcome, OutOfScopeOutcome, RequiredSourceUnavailableOutcome
 from app.domain.retrieval import CandidateEvidence, RetrievalResult
 from app.domain.routing import SourceRoutingPlan
 from app.domain.validation import FinalValidationResult
@@ -50,9 +50,15 @@ class ClaimClassifier(Protocol):
 
 @runtime_checkable
 class SourceRouter(Protocol):
-    """Route a classified claim only to qualified approved sources."""
+    """Route a classified claim only to qualified, AVAILABLE approved sources.
 
-    async def route(self, claim: ClassifiedClaim) -> SourceRoutingPlan | OutOfScopeOutcome: ...
+    If a source the claim requires is unavailable, return RequiredSourceUnavailableOutcome
+    (explicit abstention; never a status, never Out of Scope).
+    """
+
+    async def route(
+        self, claim: ClassifiedClaim
+    ) -> SourceRoutingPlan | OutOfScopeOutcome | RequiredSourceUnavailableOutcome: ...
 
 
 @runtime_checkable

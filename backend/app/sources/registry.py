@@ -45,9 +45,14 @@ def build_default_registry(settings) -> AdapterRegistry:  # type: ignore[no-unty
     from app.sources.quranpedia import QuranpediaAdapter
 
     reg = AdapterRegistry()
+    from pathlib import Path
+
     reg.register(
         QuranpediaAdapter(
-            enabled=settings.quranpedia_enabled, base_url=settings.quranpedia_base_url
+            enabled=settings.quranpedia_enabled,
+            base_url=settings.quranpedia_base_url,
+            data_dir=Path(settings.quran_data_dir) if settings.quran_data_dir else None,
+            timeout_seconds=settings.source_request_timeout_seconds,
         )
     )
     reg.register(DorarAdapter(enabled=settings.dorar_enabled, base_url=settings.dorar_base_url))

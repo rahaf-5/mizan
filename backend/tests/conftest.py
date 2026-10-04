@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 import pytest
 
 from app.config import get_settings
-from app.domain.enums import RetrievalMethod, SourceType
-from app.domain.evidence import Evidence, HadithMetadata, QuranMetadata
+from app.domain.enums import QuranTextForm, RetrievalChannel, RetrievalMethod, SourceType
+from app.domain.evidence import Evidence, HadithMetadata, QuranMetadata, text_fingerprint
 from app.domain.retrieval import CandidateEvidence, RetrievalMetadata
 from app.domain.trusted_sources import Provider, TrustedSourceId
 
@@ -23,6 +23,9 @@ def _isolated_settings(monkeypatch):
         "GEMINI_API_KEY",
         "GEMINI_MODEL",
         "GEMINI_THINKING_LEVEL",
+        "QURANPEDIA_ENABLED",
+        "QURAN_DATA_DIR",
+        "DORAR_ENABLED",
     ):
         monkeypatch.delenv(var, raising=False)
     get_settings.cache_clear()
@@ -34,22 +37,32 @@ def _isolated_settings(monkeypatch):
 
 
 def make_quran_evidence(evidence_id: str = "ev-q-1", **overrides) -> Evidence:
+    text = overrides.pop("text", "نص تجريبي")
     data = dict(
         evidence_id=evidence_id,
         source_type=SourceType.QURAN,
-        text="نص تجريبي",
+        text=text,
         source_name="القرآن الكريم",
         provider=Provider.QURANPEDIA,
         trusted_source_id=TrustedSourceId.QURAN,
         reference="test-ref",
-        source_record_id="test-record-1",
+        source_address="/v1/mushafs/1/1/1",
+        source_record_id="1",
+        retrieval_channel=RetrievalChannel.OFFICIAL_DUMP,
+        source_version="test-version",
         retrieved_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        text_sha256=text_fingerprint(text),
+        text_transform="test",
         metadata=QuranMetadata(
+            mushaf_id=1,
+            quranpedia_ayah_id=1,
             surah_number=1,
             surah_name_ar="سورة تجريبية",
             ayah_number=1,
-            ayah_text_uthmani="نص تجريبي",
-            ayah_text_normalized="نص تجريبي",
+            ayah_text=text,
+            text_form=QuranTextForm.MUSHAF_DIACRITIZED,
+            ayah_text_normalized=text,
+            dump_version="test-version",
         ),
     )
     data.update(overrides)

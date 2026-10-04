@@ -34,25 +34,33 @@ def test_registry_rejects_duplicate_registration():
         reg.register(DorarAdapter())
 
 
-@pytest.mark.parametrize(
-    "adapter_cls,source",
-    [
-        (QuranpediaAdapter, TrustedSourceId.QURAN),
-        (DorarAdapter, TrustedSourceId.DORAR_HADITH),
-    ],
-)
-async def test_placeholders_raise_not_connected(adapter_cls, source):
-    adapter = adapter_cls(enabled=True)
-    assert adapter.connection_state() == AdapterConnectionState.NOT_CONNECTED
+async def test_dorar_is_blocked_and_never_serves_evidence():
+    adapter = DorarAdapter(enabled=True)
     assert adapter.supported_methods == frozenset()  # nothing assumed about provider APIs
+    assert not TRUSTED_SOURCES[TrustedSourceId.DORAR_HADITH].is_available
     with pytest.raises(SourceNotConnectedError):
         await adapter.search(
-            SourceQuery(source=source, method=RetrievalMethod.EXACT, query_text="q")
+            SourceQuery(
+                source=TrustedSourceId.DORAR_HADITH, method=RetrievalMethod.EXACT, query_text="q"
+            )
         )
     with pytest.raises(SourceNotConnectedError):
-        await adapter.get_record(source, "id")
+        await adapter.get_records(TrustedSourceId.DORAR_HADITH, "x")
 
 
-def test_disabled_by_default():
-    assert QuranpediaAdapter().connection_state() == AdapterConnectionState.DISABLED
+def test_defaults():
+    assert QuranpediaAdapter().connection_state() == AdapterConnectionState.CONFIGURED
+    assert QuranpediaAdapter(enabled=False).connection_state() == AdapterConnectionState.DISABLED
     assert DorarAdapter().provider == Provider.DORAR_AL_SUNNIYAH
+
+
+def test_policy_bindings_locked():
+    b = {s.id: (s.quranpedia_mushaf_id, s.quranpedia_book_id) for s in TRUSTED_SOURCES.values()}
+    assert b[TrustedSourceId.QURAN] == (1, None)
+    assert b[TrustedSourceId.TAFSIR_AL_MUYASSAR] == (None, 2012)  # full coverage (not 32)
+    assert b[TrustedSourceId.TAFSIR_IBN_KATHIR] == (None, 136)
+    assert b[TrustedSourceId.ASBAB_AL_NUZUL_AL_WAHIDI] == (None, 2919)
+    assert b[TrustedSourceId.AL_MUHARRAR_FI_ASBAB_AL_NUZUL] == (None, 460)
+    assert [s.id for s in TRUSTED_SOURCES.values() if not s.is_available] == [
+        TrustedSourceId.DORAR_HADITH
+    ]

@@ -12,9 +12,9 @@ User Input → Claim Extraction → User Review & Confirmation → Claim Classif
 |---|---|---|---|
 | Claim Extraction | `ClaimExtractor` | `ExtractionInput` → `ClaimExtractionResult` | Task 4 |
 | User Review & Confirmation | `select_confirmed_claims()` (domain gate) | `Claim[]` → `ConfirmedClaim[]` | gate: Task 1; UI: Task 4 |
-| Claim Classification | `ClaimClassifier` | `ConfirmedClaim` → `ClassifiedClaim \| OutOfScopeOutcome` | Task 4 |
-| Source Routing | `SourceRouter` | `ClassifiedClaim` → `SourceRoutingPlan \| OutOfScopeOutcome` | Task 5 |
-| Hybrid Retrieval | `HybridRetriever` | → `RetrievalResult` (candidates + attempts) | Task 5 |
+| Claim Classification | `ClaimClassifier` | `ConfirmedClaim` → `ClassifiedClaim \| OutOfScopeOutcome` | Task 5a (`pipeline/classification.py`, Gemini + hadith-marker rule; ayah hints only) |
+| Source Routing | `SourceRouter` | `ClassifiedClaim` → `SourceRoutingPlan \| OutOfScopeOutcome \| RequiredSourceUnavailableOutcome` | Task 5a (`pipeline/routing.py`, deterministic) |
+| Hybrid Retrieval | `HybridRetriever` | → `RetrievalResult` (candidates + attempts + anchors) | Task 5a (`pipeline/retrieval.py`; `sources/quranpedia.py`, `sources/quran_index.py`) |
 | Evidence Verification | `EvidenceVerifier` | → `EvidenceAssessment[]` | Task 6 |
 | Evidence Analysis | `EvidenceAnalyzer` | → `AnalysisResult` | Task 6 |
 | Verification Status | `StatusDeterminer` | → `StatusDetermination` (1 of 6) | Task 6 |
@@ -114,3 +114,22 @@ orchestrator — not a domain rule.
 
 1. **Evidence Strength levels.** Only signals are modelled; no levels/thresholds.
 2. **Status → result group mapping** (spec §12) is deferred to Task 7.
+
+
+## Task 5a — Retrieval (2026-10-04)
+
+- **Outcomes:** a claim ends in one of four structurally separate outcomes: `verification`,
+  `out_of_scope`, `system_error`, `required_source_unavailable` (a REQUIRED trusted source is
+  unavailable — currently Hadith/Dorar; explicit abstention, never a status / falsehood).
+- **Routing:** each required claim type → only qualified sources that are AVAILABLE by policy and
+  configured. Any required type without a usable source → `required_source_unavailable` for the
+  whole claim. Unavailable adapters are never called.
+- **Retrieval:** exact anchors (quoted ayah text ≥ 4 normalised words, explicit references,
+  LLM hints validated against Mushaf 1; invalid hints discarded) → keyword fallback (flagged
+  weak) → semantic not attempted. Quran evidence from the official Mushaf 1 dump; tafsir/asbab
+  fetched live per anchor ayah. Merge/dedup (Quran by ayah id, passages by SHA-256), rank per
+  source by basis then score. Provider failures → failed attempts (system errors), never "no
+  evidence".
+- **Traceability:** every `Evidence` has `source_address` (official address), optional
+  provider `source_record_id` (only when the provider has one), `retrieval_channel`,
+  `source_version` (dumps), `retrieved_at`, `text_sha256` (validated) and `text_transform`.

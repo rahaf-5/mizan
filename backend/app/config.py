@@ -42,9 +42,12 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.5-flash-lite"
     gemini_thinking_level: Literal["", "minimal", "low", "medium", "high"] = "low"
 
-    # Trusted sources (placeholders)
-    quranpedia_enabled: bool = False
-    quranpedia_base_url: str | None = None
+    # Trusted sources. Quranpedia: official public API (no key) + official Mushaf 1 dump.
+    quranpedia_enabled: bool = True
+    quranpedia_base_url: str | None = None  # default: https://api.quranpedia.net/v1
+    #: Where `python -m app.cli.sync_quran_dump` stores the official dump (git-ignored).
+    quran_data_dir: str | None = None
+    # Dorar: approved but UNAVAILABLE by policy (blocked); this flag cannot override policy.
     quranpedia_api_key: SecretStr | None = None
     dorar_enabled: bool = False
     dorar_base_url: str | None = None
@@ -61,6 +64,7 @@ class Settings(BaseSettings):
         "dorar_api_key",
         "quranpedia_base_url",
         "dorar_base_url",
+        "quran_data_dir",
         mode="before",
     )
     @classmethod

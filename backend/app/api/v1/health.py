@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from app.config import Settings, get_settings
 from app.db.session import check_database
+from app.domain.trusted_sources import get_trusted_source
 from app.llm.factory import build_llm_provider
 from app.sources.registry import build_default_registry
 
@@ -41,13 +42,9 @@ async def live() -> dict[str, str]:
 async def health(settings: Annotated[Settings, Depends(get_settings)]) -> HealthReport:
     db_status, db_detail = await run_in_threadpool(check_database, settings)
     registry = build_default_registry(settings)
-    sources = {
-        a.provider.value: ComponentStatus(status=a.connection_state().value)
-        for a in registry.adapters()
-    }
+    sources = {a.provider.value: _source_status(a) for a in registry.adapters()}
     return HealthReport(
-        # Only the database is required for "ok" at this stage; sources/LLM
-        # are expected to be unconnected at this stage.
+        # Only the database is required for "ok" at this stage.
         status="ok" if db_status == "ok" else "degraded",
         app=settings.app_name,
         version=settings.app_version,
@@ -57,6 +54,14 @@ async def health(settings: Annotated[Settings, Depends(get_settings)]) -> Health
         llm_provider=_llm_status(settings),
         trusted_sources=sources,
     )
+
+
+def _source_status(adapter) -> ComponentStatus:  # type: ignore[no-untyped-def]
+    """Policy availability first (e.g. Dorar is blocked), then adapter configuration."""
+    policy = [get_trusted_source(s) for s in adapter.served_sources]
+    if policy and all(not s.is_available for s in policy):
+        return ComponentStatus(status="unavailable", detail=policy[0].availability_note)
+    return ComponentStatus(status=adapter.connection_state().value)
 
 
 def _llm_status(settings: Settings) -> ComponentStatus:

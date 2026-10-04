@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
 from pydantic import ValidationError
 
@@ -20,6 +22,7 @@ from app.domain.enums import (
     OutOfScopeReason,
     ProvidedEvidenceType,
     RetrievalAttemptStatus,
+    RetrievalChannel,
     RetrievalMethod,
     RetryReason,
     SourceType,
@@ -30,11 +33,18 @@ from app.domain.enums import (
     VerificationStatus,
 )
 from app.domain.errors import ClaimNotConfirmedError, SystemErrorInfo
-from app.domain.evidence import AsbabNuzulMetadata, Evidence, TafsirMetadata
+from app.domain.evidence import (
+    AsbabNuzulMetadata,
+    AyahRef,
+    Evidence,
+    TafsirMetadata,
+    text_fingerprint,
+)
 from app.domain.inputs import ExtractionInput
 from app.domain.results import (
     FinalUserResult,
     OutOfScopeOutcome,
+    RequiredSourceUnavailableOutcome,
     SystemErrorOutcome,
     VerificationOutcome,
 )
@@ -167,9 +177,29 @@ def test_extraction_input_requires_text():
 def test_valid_evidence_is_traceable():
     ev = make_quran_evidence()
     assert ev.source_name and ev.provider and ev.source_record_id and ev.reference
+    assert ev.source_address and ev.text_sha256 and ev.retrieval_channel
 
 
-@pytest.mark.parametrize("field", ["reference", "source_record_id", "source_name", "text"])
+def test_fingerprint_must_match_text():
+    with pytest.raises(ValidationError):
+        make_quran_evidence(text_sha256="0" * 64)
+
+
+def test_official_dump_evidence_requires_version():
+    with pytest.raises(ValidationError):
+        make_quran_evidence(source_version=None)
+
+
+def test_quran_evidence_must_come_from_bound_mushaf():
+    ev = make_quran_evidence()
+    with pytest.raises(ValidationError):
+        make_quran_evidence(metadata=ev.metadata.model_copy(update={"mushaf_id": 2}))
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["reference", "source_record_id", "source_name", "text", "source_address", "text_sha256"],
+)
 def test_evidence_without_traceability_rejected(field):
     with pytest.raises(ValidationError):
         make_quran_evidence(**{field: ""})
@@ -205,28 +235,81 @@ def test_hadith_grading_optional_never_invented():
     assert make_hadith_metadata().grading is None
 
 
-def test_tafsir_and_asbab_ranges():
-    with pytest.raises(ValidationError):
-        TafsirMetadata(
-            tafsir_name="t",
-            author="a",
-            surah_number=2,
-            surah_name_ar="s",
-            ayah_start=5,
-            ayah_end=4,
-            chunk_id="c",
-        )
-    md = AsbabNuzulMetadata(
-        asbab_source_name="s",
-        author="a",
-        surah_number=2,
-        surah_name_ar="s",
-        ayah_start=1,
-        ayah_end=1,
-        chunk_id="c",
-        relation_type=AsbabRelationType.CONTEXTUAL,
+def _refs(*pairs):
+    return [AyahRef(surah_number=s, ayah_number=a, quranpedia_ayah_id=i) for s, a, i in pairs]
+
+
+def _passage_meta(cls, associated, **kw):
+    data = dict(
+        provider_book_id=2919,
+        provider_book_name="كتاب تجريبي",
+        provider_author=None,
+        requested_ayah=associated[0] if associated else None,
+        surah_name_ar="سورة تجريبية",
+        associated_ayahs=associated,
+        provider_ayah_association=",".join(str(r.quranpedia_ayah_id) for r in associated),
+        page_kind="provider",
+        position_in_response=0,
     )
-    assert md.relation_type == AsbabRelationType.CONTEXTUAL
+    data.update(kw)
+    return cls(**data)
+
+
+def test_multi_ayah_provider_association_is_preserved():
+    refs = _refs(*[(1, n, n) for n in range(1, 8)])
+    md = _passage_meta(AsbabNuzulMetadata, refs)
+    assert len(md.associated_ayahs) == 7  # not collapsed to one ayah
+    assert md.provider_ayah_association == "1,2,3,4,5,6,7"
+    assert md.ayah_range == (1, 1, 7)  # faithful contiguous range only
+    assert md.relation_type == AsbabRelationType.UNSPECIFIED
+    assert md.provider_author is None  # never filled in
+
+
+def test_range_not_derived_when_not_faithful():
+    assert _passage_meta(TafsirMetadata, _refs((2, 3, 10), (2, 5, 12))).ayah_range is None
+    assert _passage_meta(TafsirMetadata, _refs((1, 7, 7), (2, 1, 8))).ayah_range is None
+    with pytest.raises(ValidationError):
+        _passage_meta(TafsirMetadata, [], requested_ayah=_refs((1, 1, 1))[0])
+
+
+def _passage_evidence(metadata, source=TrustedSourceId.ASBAB_AL_NUZUL_AL_WAHIDI, **kw):
+    text = "نص تجريبي"
+    data = dict(
+        evidence_id="ev-p",
+        source_type=metadata.source_type,
+        text=text,
+        source_name="مصدر",
+        provider=Provider.QURANPEDIA,
+        trusted_source_id=source,
+        reference="ref",
+        source_address="/v1/ayah/1/1/book/2919",
+        retrieval_channel=RetrievalChannel.LIVE_API,
+        retrieved_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        text_sha256=text_fingerprint(text),
+        text_transform="test",
+        metadata=metadata,
+    )
+    data.update(kw)
+    return Evidence(**data)
+
+
+def test_passage_evidence_has_no_invented_record_id():
+    ev = _passage_evidence(_passage_meta(AsbabNuzulMetadata, _refs((1, 1, 1))))
+    assert ev.source_record_id is None and ev.source_address.startswith("/v1/ayah/")
+
+
+def test_quranpedia_asbab_relation_must_stay_unspecified():
+    md = _passage_meta(
+        AsbabNuzulMetadata, _refs((1, 1, 1)), relation_type=AsbabRelationType.DIRECT_SABAB
+    )
+    with pytest.raises(ValidationError):
+        _passage_evidence(md)
+
+
+def test_passage_book_must_match_policy_binding():
+    md = _passage_meta(TafsirMetadata, _refs((1, 1, 1)), provider_book_id=32)
+    with pytest.raises(ValidationError):  # Muyassar is bound to 2012 for the MVP
+        _passage_evidence(md, source=TrustedSourceId.TAFSIR_AL_MUYASSAR)
 
 
 def test_evidence_roundtrips_json():
@@ -447,9 +530,30 @@ def test_three_outcome_kinds_are_distinct_and_serializable():
             _verification_outcome(),
             OutOfScopeOutcome(claim_id="c2", reason=OutOfScopeReason.OUTSIDE_SOURCE_COVERAGE),
             SystemErrorOutcome(claim_id="c3", error=_err()),
+            RequiredSourceUnavailableOutcome(
+                claim_id="c4",
+                confirmed_claim_text="ادعاء",
+                required_claim_types=[ClaimType.HADITH],
+                unavailable_sources=[TrustedSourceId.DORAR_HADITH],
+            ),
         ],
     )
     parsed = FinalUserResult.model_validate_json(result.model_dump_json())
-    assert [o.kind for o in parsed.outcomes] == ["verification", "out_of_scope", "system_error"]
-    assert not hasattr(parsed.outcomes[1], "status")
-    assert not hasattr(parsed.outcomes[2], "status")
+    assert [o.kind for o in parsed.outcomes] == [
+        "verification",
+        "out_of_scope",
+        "system_error",
+        "required_source_unavailable",
+    ]
+    for o in parsed.outcomes[1:]:
+        assert not hasattr(o, "status")  # none of these is a verification status
+
+
+def test_required_source_unavailable_must_name_a_required_source():
+    with pytest.raises(ValidationError):
+        RequiredSourceUnavailableOutcome(
+            claim_id="c",
+            confirmed_claim_text="ادعاء",
+            required_claim_types=[ClaimType.QURAN],
+            unavailable_sources=[TrustedSourceId.DORAR_HADITH],
+        )

@@ -29,7 +29,25 @@
     ],
     "AsbabRelationType": [
       "direct_sabab",
-      "contextual"
+      "contextual",
+      "unspecified"
+    ],
+    "QuranTextForm": [
+      "mushaf_diacritized"
+    ],
+    "RetrievalChannel": [
+      "official_dump",
+      "live_api"
+    ],
+    "RetrievalMatchBasis": [
+      "quoted_text",
+      "explicit_reference",
+      "retrieval_hint",
+      "keyword"
+    ],
+    "SourceAvailability": [
+      "available",
+      "unavailable"
     ],
     "RetrievalMethod": [
       "exact",
@@ -138,7 +156,8 @@
   "claimOutcomeKinds": [
     "verification",
     "out_of_scope",
-    "system_error"
+    "system_error",
+    "required_source_unavailable"
   ],
   "limits": {
     "claimExtractionMaxInputChars": 10000,
@@ -153,7 +172,10 @@
       "source_type": "quran",
       "qualified_for": [
         "quran"
-      ]
+      ],
+      "availability": "available",
+      "quranpedia_mushaf_id": 1,
+      "quranpedia_book_id": null
     },
     {
       "id": "tafsir_al_muyassar",
@@ -162,7 +184,10 @@
       "source_type": "tafsir",
       "qualified_for": [
         "tafsir"
-      ]
+      ],
+      "availability": "available",
+      "quranpedia_mushaf_id": null,
+      "quranpedia_book_id": 2012
     },
     {
       "id": "tafsir_ibn_kathir",
@@ -171,7 +196,10 @@
       "source_type": "tafsir",
       "qualified_for": [
         "tafsir"
-      ]
+      ],
+      "availability": "available",
+      "quranpedia_mushaf_id": null,
+      "quranpedia_book_id": 136
     },
     {
       "id": "asbab_al_nuzul_al_wahidi",
@@ -180,7 +208,10 @@
       "source_type": "asbab_nuzul",
       "qualified_for": [
         "asbab_nuzul"
-      ]
+      ],
+      "availability": "available",
+      "quranpedia_mushaf_id": null,
+      "quranpedia_book_id": 2919
     },
     {
       "id": "al_muharrar_fi_asbab_al_nuzul",
@@ -189,7 +220,10 @@
       "source_type": "asbab_nuzul",
       "qualified_for": [
         "asbab_nuzul"
-      ]
+      ],
+      "availability": "available",
+      "quranpedia_mushaf_id": null,
+      "quranpedia_book_id": 460
     },
     {
       "id": "dorar_hadith",
@@ -198,7 +232,10 @@
       "source_type": "hadith",
       "qualified_for": [
         "hadith"
-      ]
+      ],
+      "availability": "unavailable",
+      "quranpedia_mushaf_id": null,
+      "quranpedia_book_id": null
     }
   ]
 }

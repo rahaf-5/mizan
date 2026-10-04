@@ -5,6 +5,11 @@ Nothing below has been assumed or invented. Adapters are placeholders that raise
 
 ## Quranpedia (Task 5) — `backend/app/sources/quranpedia.py`
 
+> **Task 5a (2026-10-04): CONNECTED.** Quran from the official Mushaf 1 dump
+> (`python -m app.cli.sync_quran_dump`, stored git-ignored in `backend/data/quranpedia/`);
+> tafsir/asbab live from `GET https://api.quranpedia.net/v1/ayah/{s}/{a}/book/{2012|136|2919|460}`.
+> No key; 120 req/min, 10,000/day per IP. Real smoke: `python -m app.cli.smoke_retrieval`.
+
 > Live validation results (2026-10-04), confirmed endpoints/IDs and open gaps:
 > see `docs/SOURCE_VALIDATION.md`. Byte-exact check: `cd backend && python -m app.cli.validate_sources`.
 
@@ -22,6 +27,10 @@ Needed:
 - [ ] Terms of use / licensing for displaying source text in Mizan
 
 ## Dorar al-Sunniyah (Task 5) — `backend/app/sources/dorar.py`
+
+> **BLOCKED (policy: UNAVAILABLE).** Hadith-requiring claims end as `required_source_unavailable`.
+> Unblock = Dorar provides per-hadith id/URL + single-record retrieval + written permission
+> (display/caching); then implement this adapter and set the policy availability to AVAILABLE.
 
 > Live validation results (2026-10-04), confirmed endpoints/IDs and open gaps:
 > see `docs/SOURCE_VALIDATION.md`. Byte-exact check: `cd backend && python -m app.cli.validate_sources`.

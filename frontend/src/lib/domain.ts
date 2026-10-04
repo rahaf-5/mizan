@@ -41,7 +41,13 @@ export const RESULT_GROUPS = [
 export type ResultGroup = (typeof RESULT_GROUPS)[number];
 
 /** A claim ends in exactly one of these structurally separate outcome kinds. */
-export const CLAIM_OUTCOME_KINDS = ["verification", "out_of_scope", "system_error"] as const;
+export const CLAIM_OUTCOME_KINDS = [
+  "verification",
+  "out_of_scope",
+  "system_error",
+  /** A required trusted source (e.g. Hadith/Dorar) is unavailable: explicit abstention, not a status. */
+  "required_source_unavailable",
+] as const;
 export type ClaimOutcomeKind = (typeof CLAIM_OUTCOME_KINDS)[number];
 
 export const OUT_OF_SCOPE_REASONS = [

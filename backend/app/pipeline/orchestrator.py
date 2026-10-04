@@ -5,7 +5,8 @@ limited to rules stated in the spec:
   * only selected, user-confirmed claims enter verification (spec §2);
   * Retry is bounded by configuration (spec §10); the limit is injected, not hardcoded;
   * technical failures become SystemErrorOutcome, never an evidence status (spec §17);
-  * Out of Scope from classification/routing is passed through as its own outcome.
+  * Out of Scope from classification/routing is passed through as its own outcome;
+  * RequiredSourceUnavailable from routing is passed through (explicit abstention).
 
 Retry exhaustion (LOCKED decision, see FinalValidationGate):
   * evidentiary limitation -> the gate abstains internally and maps to an
@@ -24,7 +25,13 @@ from dataclasses import dataclass
 from app.domain.claim import Claim, ClassifiedClaim, select_confirmed_claims
 from app.domain.enums import PipelineStage, SystemErrorCode, ValidationOutcome
 from app.domain.errors import MizanError, SystemErrorInfo
-from app.domain.results import ClaimOutcome, FinalUserResult, OutOfScopeOutcome, SystemErrorOutcome
+from app.domain.results import (
+    ClaimOutcome,
+    FinalUserResult,
+    OutOfScopeOutcome,
+    RequiredSourceUnavailableOutcome,
+    SystemErrorOutcome,
+)
 from app.pipeline.contracts import (
     ClaimClassifier,
     EvidenceAnalyzer,
@@ -73,7 +80,7 @@ class VerificationPipeline:
                 return classified
             current_stage = PipelineStage.SOURCE_ROUTING
             plan = await self._s.router.route(classified)
-            if isinstance(plan, OutOfScopeOutcome):
+            if isinstance(plan, (OutOfScopeOutcome, RequiredSourceUnavailableOutcome)):
                 return plan
             return await self._verify_with_retries(classified, plan)
         except MizanError as exc:

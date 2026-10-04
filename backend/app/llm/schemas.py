@@ -76,9 +76,34 @@ class ClaimExtractionDraft(LLMOutput):
 # --- Classification assistance ---------------------------------------------
 
 
+class AyahHintDraft(LLMOutput):
+    """An ayah the claim quotes or names — a RETRIEVAL HINT only (validated, never evidence)."""
+
+    surah_number: int = Field(description="Surah number (1-114).")
+    ayah_start: int = Field(description="First ayah number.")
+    ayah_end: int | None = Field(
+        default=None, description="Last ayah number for a short range, else null."
+    )
+
+
 class ClassificationSuggestion(LLMOutput):
-    suggested_claim_type: ClaimType | None = None
-    rationale: str = Field(min_length=1)
+    suggested_claim_type: ClaimType | None = Field(
+        default=None,
+        description=(
+            "Main claim type: quran | tafsir | asbab_nuzul | hadith, or null if the claim is "
+            "none of these."
+        ),
+    )
+    additional_claim_types: list[ClaimType] = Field(
+        default_factory=list,
+        description="Other claim types the SAME claim also asserts (composite claim), else [].",
+    )
+    ayah_hints: list[AyahHintDraft] = Field(
+        default_factory=list,
+        max_length=10,
+        description="Ayahs the claim quotes or clearly refers to (lookup hints only), else [].",
+    )
+    rationale: str = Field(min_length=1, description="One short sentence.")
 
 
 # --- Constrained evidence analysis -----------------------------------------

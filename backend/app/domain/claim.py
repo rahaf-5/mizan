@@ -88,10 +88,40 @@ class ConfirmedClaim(BaseModel):
         return v
 
 
+class AyahRetrievalHint(BaseModel):
+    """An ayah location suggested by the LLM classifier — a RETRIEVAL HINT ONLY.
+
+    Never evidence, never a citation, never shown as a reference. Retrieval
+    validates every hint against the official Quran source and discards invalid
+    ones. Fields are deliberately unconstrained so an invalid hint can be
+    recorded and discarded instead of failing classification.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    surah_number: int
+    ayah_start: int
+    ayah_end: int | None = None
+
+
 class ClassifiedClaim(ConfirmedClaim):
     """A confirmed claim after Claim Classification: `claim_type` is required."""
 
     claim_type: ClaimType  # type: ignore[assignment]
+    #: Further claim types a composite claim requires (each routed to its own sources).
+    additional_claim_types: list[ClaimType] = Field(default_factory=list)
+    #: Unvalidated LLM retrieval hints (see AyahRetrievalHint).
+    retrieval_hints: list[AyahRetrievalHint] = Field(default_factory=list, max_length=10)
+    #: Deterministic signals recorded by classification (audit), e.g. "hadith_marker".
+    classification_signals: list[str] = Field(default_factory=list)
+
+    @property
+    def required_claim_types(self) -> list[ClaimType]:
+        out = [self.claim_type]
+        for t in self.additional_claim_types:
+            if t not in out:
+                out.append(t)
+        return out
 
     @model_validator(mode="after")
     def _type_required(self) -> ClassifiedClaim:

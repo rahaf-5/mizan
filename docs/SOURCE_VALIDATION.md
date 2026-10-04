@@ -224,4 +224,34 @@ Dorar (https://dorar.net/article/389, https://dorar.net/article/111):
 - Reported by the user from the terminal output: **no id-like keys on individual tafsir/asbab content
   items** in the official dumps; `/v1/changes` provides official `refetch` paths addressed by
   **book + surah + ayah**. Passage-id search closed. No substitute identifier invented.
-- Raw terminal output not yet stored in the repo (it was printed on the Mac only).
+- Exact output: `docs/dumps-validation-2026-10-04.txt`. Confirmed: no id-like keys on any
+  tafsir/asbab item; `ayahs` = comma-separated Quranpedia mushaf-wide ayah ids; `/changes` rows
+  `{book, surah, ayah, changed_at, refetch: "/v1/ayah/S/A/book/B"}`.
+  - Wahidi 2919: 564 ayah records, 157 multi-ayah items (e.g. "1,2,3,4,5,6,7").
+  - Muharrar 460: 198 ayah records, 1,007 items, all single-ayah.
+  - Muyassar 32: 5,042 / 6,236 ayahs. Muyassar 2012: 6,236 / 6,236 (its `page` = ayah id).
+  - Ibn Kathir 136: 6,057 / 6,236 ayahs (9,166 items). 331: 6,228 (16,744 multi-ayah items).
+  - `surahs.json.gz` / `books.json.gz` did not match the manifest SHA-256 (rebuilt after it).
+
+
+---
+
+# APPROVED DECISIONS (2026-10-04)
+1. Tafsir al-Muyassar → Quranpedia book **2012** (covers all 6,236 ayahs). Book **32** stays
+   documented as the variant with richer printed-edition metadata (2nd ed., 1430, King Fahd
+   Complex) but covers only 5,042 ayahs and is NOT used for MVP retrieval. 2012's missing edition
+   metadata is never filled in; its `page` value (= ayah id) is not presented as a printed page.
+2. Tafsir Ibn Kathir → book **136** (Dar Taybah, ed. 2, 1420, muhaqqiq Sami Salama).
+3. Quran → **Mushaf 1** (matches the King Fahd print; diacritized, NOT Uthmani rasm) — stored as
+   `ayah_text` + `text_form = mushaf_diacritized`, never as `ayah_text_uthmani`.
+4. al-Wahidi 2919 stays approved; provider author stays `null`; Mizan's approved-source identity
+   (Trusted Sources Policy) is kept separate from provider metadata.
+5. Asbab `relation_type` gains `unspecified`; Quranpedia evidence is always `unspecified`;
+   "direct cause" is never inferred by LLM or heuristics.
+6. Quran: official Mushaf 1 dump (git-ignored, checksum-verified, synced via `/v1/changes`);
+   Tafsir/Asbab: live official API, no lasting response cache.
+7. Passage traceability: official address `/v1/ayah/S/A/book/B` + provider volume/page +
+   `retrieved_at` + SHA-256 of the exact text. No invented provider ids. Multi-ayah provider
+   associations preserved verbatim; a range is derived only when faithful (contiguous, one surah).
+8. Hadith/Dorar disabled by policy; hadith-requiring claims end as `required_source_unavailable`
+   (separate outcome). HadeethEnc: documented as a possible future supplementary source only.

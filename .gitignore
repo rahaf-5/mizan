@@ -37,3 +37,6 @@ coverage/
 
 # --- Local data ---
 pgdata/
+
+# --- Official provider data (downloaded by sync commands; never commit) ---
+backend/data/

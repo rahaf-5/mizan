@@ -18,7 +18,7 @@ def test_defaults_load_without_env():
     assert s.verification_max_retries == 2  # implementation default only
     assert s.llm_provider == "none"
     assert s.database_url is None
-    assert s.quranpedia_enabled is False and s.dorar_enabled is False
+    assert s.quranpedia_enabled is True and s.dorar_enabled is False  # Dorar blocked by policy
 
 
 def test_env_overrides_and_blank_values(monkeypatch):
@@ -45,10 +45,9 @@ def test_health_without_database_is_degraded_and_reports_placeholders():
     assert body["config_loaded"] is True
     assert body["status"] == "degraded"
     assert body["database"]["status"] == "not_configured"
-    assert body["trusted_sources"] == {
-        "quranpedia": {"status": "disabled", "detail": None},
-        "dorar_al_sunniyah": {"status": "disabled", "detail": None},
-    }
+    assert body["trusted_sources"]["quranpedia"] == {"status": "configured", "detail": None}
+    dorar = body["trusted_sources"]["dorar_al_sunniyah"]
+    assert dorar["status"] == "unavailable" and "Dorar" in dorar["detail"]  # blocked by policy
     assert body["llm_provider"]["status"] == "not_configured"
     assert "ocr" not in body  # image input / OCR is out of MVP scope
 

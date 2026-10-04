@@ -83,6 +83,13 @@ Real-provider smoke test (sends only public sample sentences; never prints the k
 cd backend && python -m app.cli.smoke_claim_extraction
 ```
 
+Trusted-source retrieval (Task 5a): sync the official Quran data once, then run the real
+retrieval smoke test (Gemini + official Quranpedia; no verdicts):
+
+    cd backend && source .venv/bin/activate
+    python -m app.cli.sync_quran_dump
+    python -m app.cli.smoke_retrieval
+
 If Gemini rejects requests, run the feature-isolation diagnostic (short public sentence only,
 never prints the key): `cd backend && python -m app.cli.diagnose_gemini`.
 
