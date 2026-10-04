@@ -68,5 +68,10 @@ def _ocr_status(settings: Settings) -> ComponentStatus:
     provider = build_ocr_provider(settings)
     if provider is None:
         return ComponentStatus(status="not_configured", detail="none")
-    status = "configured" if provider.is_configured() else "missing_credentials"
-    return ComponentStatus(status=status, detail=provider.name)
+    if provider.is_configured():
+        return ComponentStatus(status="configured", detail=provider.name)
+    problem = getattr(provider, "config_problem", None) or ""
+    status = "missing_credentials" if problem.endswith("is not set") else "invalid_credentials"
+    return ComponentStatus(
+        status=status, detail=f"{provider.name}: {problem}" if problem else provider.name
+    )

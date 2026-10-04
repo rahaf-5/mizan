@@ -6,6 +6,11 @@ provider-reported confidences (when exposed), and documented resolution guidance
 
 from __future__ import annotations
 
+from pydantic import ValidationError
+
+from app.core_logging import get_logger
+from app.domain.enums import PipelineStage
+from app.domain.errors import OcrProviderError
 from app.domain.ocr import (
     RECOMMENDED_MIN_PIXELS,
     LowConfidenceWord,
@@ -19,6 +24,7 @@ from app.domain.ocr import (
 from app.ocr.base import OcrImage, OcrProvider
 
 MAX_LOW_CONFIDENCE_SAMPLES = 30
+log = get_logger("ocr.service")
 
 
 class OcrService:
@@ -28,6 +34,16 @@ class OcrService:
 
     async def extract(self, image: OcrImage) -> OcrExtraction:
         result = await self.provider.extract_text(image)  # raises on technical failure
+        try:
+            return self._build(image, result)
+        except ValidationError as exc:
+            fields = sorted({".".join(str(p) for p in e["loc"]) for e in exc.errors()})
+            log.warning("OCR result failed validation (fields: %s)", ", ".join(fields))
+            raise OcrProviderError(
+                "OCR provider result did not pass validation", stage=PipelineStage.USER_INPUT
+            ) from exc
+
+    def _build(self, image: OcrImage, result) -> OcrExtraction:  # type: ignore[no-untyped-def]
         raw_text = result.text  # never modified
         warnings: list[OcrWarning] = []
         confidence: OcrConfidence | None = None

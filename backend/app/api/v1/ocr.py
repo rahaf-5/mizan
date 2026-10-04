@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.config import Settings, get_settings
+from app.core_logging import format_exception_safely, get_logger
 from app.domain.enums import PipelineStage, SystemErrorCode
 from app.domain.errors import MizanError, SystemErrorInfo
 from app.domain.ocr import (
@@ -27,6 +28,12 @@ from app.ocr.image_validation import OcrInputError, validate_image
 from app.ocr.service import OcrService
 
 router = APIRouter(prefix="/ocr", tags=["ocr"])
+log = get_logger("api.ocr")
+
+
+def _secrets(settings: Settings) -> list[str | None]:
+    key = settings.google_vision_api_key
+    return [key.get_secret_value() if key else None]
 
 
 class OcrInputErrorResponse(BaseModel):
@@ -90,12 +97,14 @@ async def run_ocr(
 
     provider_name = settings.ocr_provider
     if service is None or not service.provider.is_configured():
+        problem = getattr(service.provider, "config_problem", None) if service else None
+        log.warning("OCR request refused: provider not configured (%s)", problem or provider_name)
         failure = OcrFailure(
             provider=provider_name,
             error=SystemErrorInfo(
                 code=SystemErrorCode.OCR_NOT_CONFIGURED,
                 stage=PipelineStage.USER_INPUT,
-                message="OCR service is not configured",
+                message=problem or "OCR service is not configured",
                 retryable=False,
             ),
         )
@@ -105,11 +114,16 @@ async def run_ocr(
         return await service.extract(validated)
     except MizanError as exc:
         info = exc.to_info()
+        log.warning("OCR failed: code=%s message=%s", info.code.value, info.message)
         failure = OcrFailure(provider=service.provider.name, error=info)
         return JSONResponse(
             status_code=_HTTP_FOR_CODE.get(info.code, 500), content=failure.model_dump(mode="json")
         )
     except Exception as exc:  # noqa: BLE001 - technical failure, never content judgement
+        log.error(
+            "Unexpected OCR error (internal_error):\n%s",
+            format_exception_safely(exc, _secrets(settings)),
+        )
         failure = OcrFailure(
             provider=service.provider.name,
             error=SystemErrorInfo(
