@@ -5,6 +5,9 @@ Nothing below has been assumed or invented. Adapters are placeholders that raise
 
 ## Quranpedia (Task 5) — `backend/app/sources/quranpedia.py`
 
+> Live validation results (2026-10-04), confirmed endpoints/IDs and open gaps:
+> see `docs/SOURCE_VALIDATION.md`. Byte-exact check: `cd backend && python -m app.cli.validate_sources`.
+
 Serves: Quran · Tafsir al-Muyassar · Tafsir Ibn Kathir · Asbab al-Nuzul (al-Wahidi) · Al-Muharrar fi Asbab al-Nuzul.
 
 Needed:
@@ -19,6 +22,9 @@ Needed:
 - [ ] Terms of use / licensing for displaying source text in Mizan
 
 ## Dorar al-Sunniyah (Task 5) — `backend/app/sources/dorar.py`
+
+> Live validation results (2026-10-04), confirmed endpoints/IDs and open gaps:
+> see `docs/SOURCE_VALIDATION.md`. Byte-exact check: `cd backend && python -m app.cli.validate_sources`.
 
 Serves: hadith data and muhaddith rulings.
 
