@@ -255,3 +255,14 @@ Dorar (https://dorar.net/article/389, https://dorar.net/article/111):
    associations preserved verbatim; a range is derived only when faithful (contiguous, one surah).
 8. Hadith/Dorar disabled by policy; hadith-requiring claims end as `required_source_unavailable`
    (separate outcome). HadeethEnc: documented as a possible future supplementary source only.
+
+## Mushaf 1 sync — stale official manifest (2026-10-04)
+- Observed: manifest `version=2026-10-02` (sha `abbd7ada…`) while the served `mushafs-1.json.gz`
+  embeds `version=2026-10-04` (sha `0430591e…`, Last-Modified 2026-10-04) → checksum mismatch.
+- Approved fallback (sync only): if the dump comes from the official URL, mismatches the
+  manifest AND is provably newer than the manifest entry, the WHOLE dump is compared exactly with
+  the official API `GET /v1/mushafs/1` (mushaf id, all 6,236 surah/ayah coordinates, Quranpedia
+  ids, surah names, texts after BOM/whitespace removal only). Any difference fails closed.
+  Provenance is recorded in `mushafs-1.meta.json` (`verification.method =
+  official_api_crosscheck`, stale manifest version/sha, downloaded sha, embedded version,
+  verified_at). Checksum verification stays the normal path; no checksum is hardcoded.
