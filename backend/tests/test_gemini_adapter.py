@@ -23,7 +23,8 @@ from app.domain.errors import (
 )
 from app.llm.base import LLMRequest
 from app.llm.factory import build_llm_provider
-from app.llm.gemini import BASE_URL, GeminiProvider
+from app.llm.gemini import BASE_URL, GeminiProvider, gemini_response_schema
+from app.llm.json_schema import inline_schema
 from app.llm.schemas import ClaimExtractionDraft, ClassificationSuggestion, LLMTask
 
 KEY = "TEST" + "k" * 35  # synthetic
@@ -316,3 +317,83 @@ async def test_strict_validation_still_applies_with_native_json_schema():
         await provider(lambda r: httpx.Response(200, json=bad)).generate_structured(
             REQ, ClaimExtractionDraft
         )
+
+
+# --- Regression: live 400 caused by `maxItems` (diagnostic C2 = 400, C3b = 200) ---
+
+
+def _keys_anywhere(node, key):
+    if isinstance(node, dict):
+        return (key in node) or any(_keys_anywhere(v, key) for v in node.values())
+    if isinstance(node, list):
+        return any(_keys_anywhere(v, key) for v in node)
+    return False
+
+
+def _without(node, key):
+    if isinstance(node, dict):
+        return {k: _without(v, key) for k, v in node.items() if k != key}
+    if isinstance(node, list):
+        return [_without(v, key) for v in node]
+    return node
+
+
+async def test_gemini_request_schema_has_no_maxitems_but_keeps_other_restrictions():
+    seen = {}
+
+    def handler(r: httpx.Request):
+        seen["body"] = json.loads(r.content)
+        return httpx.Response(200, json=ok_response(GOOD))
+
+    await provider(handler, thinking_level="low").generate_structured(REQ, ClaimExtractionDraft)
+    sent = seen["body"]["generationConfig"]["responseJsonSchema"]
+
+    assert not _keys_anywhere(sent, "maxItems")
+    # Only maxItems is removed: everything else equals the provider-neutral schema.
+    neutral = inline_schema(ClaimExtractionDraft)
+    assert sent == _without(neutral, "maxItems")
+    item = sent["properties"]["claims"]["items"]
+    assert item["additionalProperties"] is False
+    assert set(item["required"]) >= {"extracted_claim_text", "source_excerpt", "extraction_status"}
+    assert "enum" in item["properties"]["extraction_status"]
+    assert {"type": "null"} in item["properties"]["provided_evidence_text"]["anyOf"]
+    # The other production settings are unchanged.
+    assert seen["body"]["generationConfig"]["responseMimeType"] == "application/json"
+    assert seen["body"]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "LOW"}
+
+
+def test_application_claim_limit_is_still_declared_locally():
+    """The 50-claim limit lives in the Pydantic model / neutral schema, not in Gemini's hint."""
+    assert ClaimExtractionDraft.model_fields["claims"].metadata[0].max_length == 50
+    assert inline_schema(ClaimExtractionDraft)["properties"]["claims"]["maxItems"] == 50
+    assert not _keys_anywhere(gemini_response_schema(ClaimExtractionDraft), "maxItems")
+
+
+def _claims(n):
+    return {
+        "claims": [
+            {
+                "extracted_claim_text": f"ادعاء {i}",
+                "source_excerpt": "ادعاء",
+                "extraction_status": "clear",
+            }
+            for i in range(n)
+        ]
+    }
+
+
+async def test_response_with_more_than_50_claims_is_rejected_locally():
+    """Gemini no longer receives maxItems, so Mizan must enforce the limit itself."""
+    over = ok_response(_claims(51))
+    with pytest.raises(LLMInvalidResponseError):
+        await provider(lambda r: httpx.Response(200, json=over)).generate_structured(
+            REQ, ClaimExtractionDraft
+        )
+
+
+async def test_response_with_exactly_50_claims_is_accepted():
+    ok = ok_response(_claims(50))
+    out = await provider(lambda r: httpx.Response(200, json=ok)).generate_structured(
+        REQ, ClaimExtractionDraft
+    )
+    assert len(out.claims) == 50

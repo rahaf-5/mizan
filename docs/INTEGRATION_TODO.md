@@ -57,11 +57,15 @@ Implemented in `backend/app/llm/gemini.py` behind `LLMProvider`. Backend-only; k
       sent on the free tier is "used to improve our products"; the paid tier states it is not.
       Only the submitted text is sent (no other app data). Decide whether a paid tier or a user
       notice is required before public launch.
-- [ ] Live smoke test #2 (after e7113b9): every case `400 INVALID_ARGUMENT` "Request contains an
-      invalid argument." (generic). Diagnose with `cd backend && python -m app.cli.diagnose_gemini`
-      (feature ladder: minimal → system_instruction → JSON MIME → trivial schema → Mizan schema →
-      schema-keyword isolation → thinkingLevel → full production request). Never prints the key.
-- [ ] Real-provider smoke test: `cd backend && python -m app.cli.smoke_claim_extraction`
+- [x] Live smoke test #2 (after e7113b9): every case generic `400 INVALID_ARGUMENT`. Root cause
+      found with `python -m app.cli.diagnose_gemini` (2026-10-04): model lookup, minimal,
+      system_instruction, JSON MIME, trivial schema and thinkingLevel=LOW all 200; full Mizan
+      schema 400; the same schema **without `maxItems`** 200. **Compatibility decision:** the
+      Gemini adapter strips `maxItems` from `responseJsonSchema` only
+      (`GEMINI_UNSUPPORTED_SCHEMA_KEYS`); the provider-neutral schema and Pydantic model keep the
+      50-claim limit, so a response with more than 50 claims is rejected locally as
+      `llm_invalid_response`. All other schema restrictions are still sent.
+- [ ] Real-provider smoke test (rerun after the maxItems fix): `cd backend && python -m app.cli.smoke_claim_extraction`
       (the Cowork sandbox cannot reach generativelanguage.googleapis.com).
 
 ## OCR — REMOVED FROM MVP SCOPE (2026-10-04)

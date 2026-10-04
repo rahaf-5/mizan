@@ -265,3 +265,24 @@ def test_real_gemini_400_surfaces_as_technical_failure_not_no_claims():
     assert body["kind"] == "failure" and "claims" not in body
     assert body["error"]["code"] == "llm_provider_error" and body["error"]["retryable"] is False
     assert "response_format" not in r.text and SECRET not in r.text  # internals not exposed
+
+
+def test_gemini_response_over_50_claims_is_a_failure_not_truncated_or_accepted():
+    """maxItems is no longer sent to Gemini (live 400), so the 50-claim limit is enforced
+    by Mizan: an oversized response is an `llm_invalid_response` system failure."""
+    import httpx
+
+    from app.llm.gemini import GeminiProvider
+    from tests.test_gemini_adapter import _claims, ok_response
+
+    gemini = GeminiProvider(
+        api_key=SECRET,
+        model="gemini-3.5-flash-lite",
+        transport=httpx.MockTransport(lambda r: httpx.Response(200, json=ok_response(_claims(51)))),
+    )
+    r = client(gemini).post("/api/v1/claims/extract", json={"text": KAHF})
+    assert r.status_code == 502
+    body = r.json()
+    assert body["kind"] == "failure" and "claims" not in body
+    assert body["error"]["code"] == "llm_invalid_response"
+    assert SECRET not in r.text

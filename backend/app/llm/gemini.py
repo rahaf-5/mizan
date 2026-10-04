@@ -25,7 +25,7 @@ import json
 from typing import Any
 
 import httpx
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from app.core_logging import get_logger, redact
 from app.domain.errors import (
@@ -52,6 +52,27 @@ _BLOCKED_FINISH = {
     "OTHER",
 }
 log = get_logger("llm.gemini")
+
+# JSON-Schema keywords the Gemini Developer API rejects in `responseJsonSchema`.
+# Live diagnostic (2026-10-04, gemini-3.5-flash-lite, v1beta): the full Mizan schema
+# -> 400 INVALID_ARGUMENT; the identical schema without `maxItems` -> 200.
+# Removing a keyword here ONLY relaxes the hint sent to Gemini. Every response is
+# still validated by the Pydantic output model (e.g. claims max_length=50), so the
+# application limits are enforced locally and unchanged.
+GEMINI_UNSUPPORTED_SCHEMA_KEYS = frozenset({"maxItems"})
+
+
+def gemini_response_schema(output_type: type[BaseModel]) -> dict[str, Any]:
+    """Provider-neutral inline schema minus keywords Gemini rejects."""
+
+    def strip(node: Any) -> Any:
+        if isinstance(node, dict):
+            return {k: strip(v) for k, v in node.items() if k not in GEMINI_UNSUPPORTED_SCHEMA_KEYS}
+        if isinstance(node, list):
+            return [strip(v) for v in node]
+        return node
+
+    return strip(inline_schema(output_type))
 
 
 def _error_summary(payload: Any) -> tuple[str, str | None, str]:
@@ -135,7 +156,7 @@ class GeminiProvider(LLMProvider):
         """generationConfig sent to generateContent (also used by the diagnostic CLI)."""
         generation: dict[str, Any] = {
             "responseMimeType": "application/json",
-            "responseJsonSchema": inline_schema(output_type),
+            "responseJsonSchema": gemini_response_schema(output_type),
         }
         if self._thinking:
             generation["thinkingConfig"] = {"thinkingLevel": self._thinking.upper()}
