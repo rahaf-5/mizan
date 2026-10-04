@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+/*
+ * Mizan visual foundation: calm, clean, trustworthy; cards + whitespace.
+ * Arabic-first: generous line-height, logical (start/end) spacing for RTL.
+ * Status must never rely on color alone (always pair with icon + text).
+ */
+
+@theme {
+  --font-sans: "IBM Plex Sans Arabic", system-ui, "Segoe UI", Tahoma, sans-serif;
+  /* Reserved for Uthmani ayah text (display/citation) in later tasks. */
+  --font-quran: "Amiri Quran", "IBM Plex Sans Arabic", serif;
+
+  --color-surface: #f7f8f6;
+  --color-card: #ffffff;
+  --color-ink: #1c2421;
+  --color-muted: #5b6662;
+  --color-border: #e1e5e2;
+  --color-brand: #0f5c4d;
+  --color-brand-strong: #0a4337;
+  --color-brand-soft: #e6f0ed;
+  --color-focus: #c58a1b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: #111614;
+    --color-card: #182019;
+    --color-ink: #e9eeeb;
+    --color-muted: #a3aeaa;
+    --color-border: #2a3430;
+    --color-brand: #5fb8a3;
+    --color-brand-strong: #86cdbc;
+    --color-brand-soft: #1d2b27;
+  }
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.8;
+  text-rendering: optimizeLegibility;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.quran-text {
+  font-family: var(--font-quran);
+  line-height: 2.2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
