@@ -57,6 +57,10 @@ Implemented in `backend/app/llm/gemini.py` behind `LLMProvider`. Backend-only; k
       sent on the free tier is "used to improve our products"; the paid tier states it is not.
       Only the submitted text is sent (no other app data). Decide whether a paid tier or a user
       notice is required before public launch.
+- [ ] Live smoke test #2 (after e7113b9): every case `400 INVALID_ARGUMENT` "Request contains an
+      invalid argument." (generic). Diagnose with `cd backend && python -m app.cli.diagnose_gemini`
+      (feature ladder: minimal → system_instruction → JSON MIME → trivial schema → Mizan schema →
+      schema-keyword isolation → thinkingLevel → full production request). Never prints the key.
 - [ ] Real-provider smoke test: `cd backend && python -m app.cli.smoke_claim_extraction`
       (the Cowork sandbox cannot reach generativelanguage.googleapis.com).
 

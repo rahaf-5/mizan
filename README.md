@@ -83,6 +83,9 @@ Real-provider smoke test (sends only public sample sentences; never prints the k
 cd backend && python -m app.cli.smoke_claim_extraction
 ```
 
+If Gemini rejects requests, run the feature-isolation diagnostic (short public sentence only,
+never prints the key): `cd backend && python -m app.cli.diagnose_gemini`.
+
 LLM extraction is not religious verification, and LLM output can never create evidence,
 citations or gradings. Users must confirm claims before any verification.
 

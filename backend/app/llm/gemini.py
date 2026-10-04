@@ -70,6 +70,36 @@ def _error_summary(payload: Any) -> tuple[str, str | None, str]:
     )
 
 
+def field_violations(payload: Any) -> list[str]:
+    """`google.rpc.BadRequest.fieldViolations` as "field: description" (no content/key)."""
+    err = payload.get("error") if isinstance(payload, dict) else None
+    if not isinstance(err, dict):
+        return []
+    out: list[str] = []
+    for d in err.get("details") or []:
+        if isinstance(d, dict):
+            for v in d.get("fieldViolations") or []:
+                if isinstance(v, dict):
+                    out.append(f"{v.get('field', '?')}: {v.get('description', '')}".strip())
+    return out
+
+
+def redacted_structure(body: Any) -> Any:
+    """Request body with every `text` value replaced by its length (safe to print/log)."""
+    if isinstance(body, dict):
+        return {
+            k: (
+                f"<text: {len(v)} chars>"
+                if k == "text" and isinstance(v, str)
+                else redacted_structure(v)
+            )
+            for k, v in body.items()
+        }
+    if isinstance(body, list):
+        return [redacted_structure(v) for v in body]
+    return body
+
+
 class GeminiProvider(LLMProvider):
     name = "gemini"
 
@@ -101,17 +131,21 @@ class GeminiProvider(LLMProvider):
     def is_configured(self) -> bool:
         return self.config_problem is None
 
-    def _body(self, request: LLMRequest, output_type: type[T]) -> dict:
+    def generation_config(self, output_type: type[T]) -> dict[str, Any]:
+        """generationConfig sent to generateContent (also used by the diagnostic CLI)."""
         generation: dict[str, Any] = {
             "responseMimeType": "application/json",
             "responseJsonSchema": inline_schema(output_type),
         }
         if self._thinking:
             generation["thinkingConfig"] = {"thinkingLevel": self._thinking.upper()}
+        return generation
+
+    def _body(self, request: LLMRequest, output_type: type[T]) -> dict:
         return {
             "system_instruction": {"parts": [{"text": request.system_prompt}]},
             "contents": [{"role": "user", "parts": [{"text": request.user_content}]}],
-            "generationConfig": generation,
+            "generationConfig": self.generation_config(output_type),
         }
 
     def _safe(self, text: str) -> str:
@@ -156,13 +190,16 @@ class GeminiProvider(LLMProvider):
 
     def _raise_http_error(self, status_code: int, payload: Any) -> None:
         status, reason, message = _error_summary(payload)
+        violations = "; ".join(field_violations(payload)) or "none"
         log.warning(
-            "Gemini rejected the request: http=%s status=%s reason=%s model=%s message=%s",
+            "Gemini rejected the request: http=%s status=%s reason=%s model=%s message=%s "
+            "field_violations=%s",
             status_code,
             status,
             reason,
             self.model,
             self._safe(message),
+            self._safe(violations),
         )
         summary = f"HTTP {status_code} {status}" + (f" ({reason})" if reason else "")
         if status_code in (401, 403) or reason in {"API_KEY_INVALID", "API_KEY_SERVICE_BLOCKED"}:
