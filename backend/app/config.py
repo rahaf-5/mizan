@@ -52,7 +52,8 @@ class Settings(BaseSettings):
     google_vision_api_key: SecretStr | None = None
     ocr_request_timeout_seconds: int = Field(default=30, ge=1, le=120)
     #: Words below this provider confidence are flagged for user review.
-    #: UX flag only (implementation default), never verification confidence.
+    #: LOCKED (Task 3): 0.6. OCR review signal ONLY — must never affect
+    #: verification status or Evidence Strength (guarded by tests/test_ocr_isolation.py).
     ocr_low_confidence_threshold: float = Field(default=0.6, ge=0, le=1)
     #: Optional comma-separated Vision languageHints (empty = auto-detect).
     ocr_language_hints: str = ""

@@ -66,7 +66,12 @@ images processed in memory and not used for training.
 
 Upload limit (LOCKED): **7 MB, JPG/PNG** (`MAX_UPLOAD_BYTES`), so base64 stays under 10 MB.
 
-Not yet decided / later:
-- [ ] Production data-handling note for users (images are sent to Google for OCR).
-- [ ] Optional regional endpoint (EU/US) for data residency.
+Approved (Task 3 review):
+- [x] Short privacy notice shown before image upload (images go to Google Cloud Vision for OCR only).
+- [x] Default global endpoint for the MVP (no EU/US regional endpoint).
+- [x] Low-confidence review threshold 0.6 — OCR review signal only; never affects verification
+      status or Evidence Strength.
+- [ ] One real Arabic OCR test after the API key is configured (required before closing Task 3).
+
+Later:
 - [ ] Uthmani/diacritics quality: no provider documents Uthmani support; user review is mandatory.

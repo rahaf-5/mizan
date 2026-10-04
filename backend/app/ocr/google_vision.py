@@ -18,6 +18,7 @@ from app.domain.enums import PipelineStage
 from app.domain.errors import OcrNotConfiguredError, OcrProviderError, OcrTimeoutError
 from app.ocr.base import OcrImage, OcrProvider, ProviderOcrResult, ProviderWord
 
+#: Default global endpoint (LOCKED for the MVP; regional EU/US endpoints not used).
 ENDPOINT = "https://vision.googleapis.com/v1/images:annotate"
 _STAGE = PipelineStage.USER_INPUT
 

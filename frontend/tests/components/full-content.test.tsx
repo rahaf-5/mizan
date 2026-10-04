@@ -115,6 +115,17 @@ describe("Full Content — image", () => {
     expect(fileInput()).toHaveAttribute("accept", "image/jpeg,image/png,.jpg,.jpeg,.png");
   });
 
+  it("shows the privacy notice before any upload and links it to the file input", () => {
+    setup({ contentMode: "image" });
+    const notice = screen.getByText(/تُرسَل الصورة التي ترفعها إلى خدمة Google Cloud Vision/);
+    expect(notice).toBeInTheDocument();
+    expect(screen.getByText("قبل رفع الصورة")).toBeInTheDocument();
+    const describedBy = fileInput().getAttribute("aria-describedby") ?? "";
+    const noticeId = notice.closest("[id]")?.getAttribute("id") ?? "missing";
+    expect(describedBy.split(" ")).toContain(noticeId);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it("requires an image before continuing", async () => {
     const user = userEvent.setup();
     setup({ contentMode: "image" });

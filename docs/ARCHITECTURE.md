@@ -85,7 +85,9 @@ orchestrator — not a domain rule.
    Task 5 (no invented APIs, endpoints, keys, scraping, caching or indexing rights).
 
 4. **Task 3 locks.** Upload limit 7 MB JPG/PNG (from Google Vision's 10 MB request limit);
-   OCR provider Google Cloud Vision behind a provider-neutral contract; in-memory drafts only;
+   OCR provider Google Cloud Vision (default global endpoint) behind a provider-neutral contract;
+   privacy notice before image upload; low-confidence review threshold 0.6 is an OCR review signal
+   only and never affects verification status or Evidence Strength; in-memory drafts only;
    multi-claim guidance stays a non-blocking heuristic.
 
 ## Open decisions

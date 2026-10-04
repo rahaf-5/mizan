@@ -70,6 +70,9 @@ export const ar = {
     textPreparedTitle: "تم تجهيز النص لاستخراج الادعاءات",
     imageLabel: "الصورة",
     imageDropTitle: "اختر صورة أو اسحبها إلى هنا",
+    privacyTitle: "قبل رفع الصورة",
+    privacyNotice:
+      "تُرسَل الصورة التي ترفعها إلى خدمة Google Cloud Vision لاستخراج النص منها فقط، ولا يحتفظ ميزان بالصورة بعد المعالجة. تجنّب رفع صور تحتوي على بيانات شخصية.",
     imageChoose: "اختيار صورة",
     imageFormats: (mb: string) => `الصيغ المقبولة: JPG أو PNG — بحد أقصى ${mb} ميغابايت`,
     imageHint:

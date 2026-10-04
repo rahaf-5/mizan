@@ -73,7 +73,7 @@ export function ImageUploadPanel() {
   const [processing, setProcessing] = useState(false);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const ids = { input: useId(), hint: useId(), error: useId(), status: useId() };
+  const ids = { input: useId(), hint: useId(), error: useId(), status: useId(), privacy: useId() };
   const image = state.image;
   const previewUrl = usePreviewUrl(image?.file ?? null);
 
@@ -143,6 +143,9 @@ export function ImageUploadPanel() {
           <p id={ids.hint} className="text-sm text-[var(--color-muted)]">
             {t.fullContent.imageHint}
           </p>
+          <Notice id={ids.privacy} tone="info" title={t.fullContent.privacyTitle} className="text-sm">
+            <p>{t.fullContent.privacyNotice}</p>
+          </Notice>
 
           <div
             onDragOver={(e) => {
@@ -215,7 +218,7 @@ export function ImageUploadPanel() {
               accept={ACCEPT}
               disabled={processing}
               aria-label={t.fullContent.imageChoose}
-              aria-describedby={[ids.hint, error ? ids.error : null].filter(Boolean).join(" ")}
+              aria-describedby={[ids.hint, ids.privacy, error ? ids.error : null].filter(Boolean).join(" ")}
               aria-invalid={error ? true : undefined}
               className="sr-only"
               onChange={(e) => void selectFile(e.target.files?.[0])}
