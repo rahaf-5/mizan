@@ -45,7 +45,28 @@ permission to copy or index Quranpedia/Dorar content is assumed.
 - [ ] Anthropic is the planned first adapter (`llm/anthropic.py`, not wired). Needs `ANTHROPIC_API_KEY`, model choice.
 - [ ] Data-handling review for sending user content to the provider.
 
-## OCR (Task 3)
+## OCR (Task 3) — DECIDED: Google Cloud Vision (`DOCUMENT_TEXT_DETECTION`)
 
-- [ ] Choose OCR provider/engine with good Arabic (incl. diacritics) support; credentials (`OCR_API_KEY`).
-- [ ] Max image size/formats; privacy of uploaded images.
+Implemented in `backend/app/ocr/google_vision.py` behind the provider-neutral `OcrProvider`
+contract. Calls run only on the backend; the key is sent in the `x-goog-api-key` header and is
+never exposed to the frontend, logs or API responses.
+
+To enable the live integration:
+- [ ] Google Cloud project with the **Cloud Vision API** enabled and **billing enabled**
+      (required by Google even within the monthly free units).
+- [ ] Create an API key and **restrict it to the Cloud Vision API** (and, in production, to the
+      backend's egress IPs).
+- [ ] In `backend/.env`: `OCR_PROVIDER=google_vision` and `GOOGLE_VISION_API_KEY=<key>`.
+- [ ] Run one real Arabic image through `/full-content` and confirm the review screen.
+
+Facts from official docs (checked 2026-10-04): Arabic (`ar`) supported; 20 MB image limit and
+10 MB JSON request limit (inline base64); 75 MP OCR pixel cap; confidence 0–1 on
+page/block/paragraph/word/symbol; first 1,000 units/month free then $1.50 per 1,000; real-time
+images processed in memory and not used for training.
+
+Upload limit (LOCKED): **7 MB, JPG/PNG** (`MAX_UPLOAD_BYTES`), so base64 stays under 10 MB.
+
+Not yet decided / later:
+- [ ] Production data-handling note for users (images are sent to Google for OCR).
+- [ ] Optional regional endpoint (EU/US) for data residency.
+- [ ] Uthmani/diacritics quality: no provider documents Uthmani support; user review is mandatory.

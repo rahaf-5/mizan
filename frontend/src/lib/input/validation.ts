@@ -7,6 +7,7 @@ import {
   ACCEPTED_IMAGE_TYPES,
   type AcceptedImageType,
 } from "./types";
+import { OCR_MAX_UPLOAD_BYTES } from "@/lib/ocr/types";
 
 export const isBlank = (text: string): boolean => text.trim().length === 0;
 
@@ -52,7 +53,7 @@ export function validateContentText(text: string): ContentTextValidation {
 
 export type ImageValidation =
   | { ok: true; type: AcceptedImageType }
-  | { ok: false; reason: "unsupported_type" | "empty_file" };
+  | { ok: false; reason: "unsupported_type" | "empty_file" | "too_large" };
 
 const extensionOf = (name: string): string => {
   const dot = name.lastIndexOf(".");
@@ -76,6 +77,7 @@ export function validateImageFile(file: Pick<File, "name" | "type" | "size">): I
     return { ok: false, reason: "unsupported_type" };
   }
   if (file.size === 0) return { ok: false, reason: "empty_file" };
+  if (file.size > OCR_MAX_UPLOAD_BYTES) return { ok: false, reason: "too_large" };
   return { ok: true, type };
 }
 

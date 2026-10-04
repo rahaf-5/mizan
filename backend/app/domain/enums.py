@@ -198,6 +198,8 @@ class SystemErrorCode(_StrEnum):
     SOURCE_NOT_CONNECTED = "source_not_connected"
     LLM_PROVIDER_ERROR = "llm_provider_error"
     OCR_ERROR = "ocr_error"
+    OCR_NOT_CONFIGURED = "ocr_not_configured"
+    OCR_TIMEOUT = "ocr_timeout"
     DATABASE_ERROR = "database_error"
     STAGE_NOT_IMPLEMENTED = "stage_not_implemented"
     VERIFICATION_INCOMPLETE = "verification_incomplete"

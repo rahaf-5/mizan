@@ -5,9 +5,9 @@ The approved product specification (`MIZAN_PRODUCT_SPEC.md`, in the Mizan projec
 
 > **Claim First. Evidence Second. Judgment Last.** — الادعاء أولًا، الدليل ثانيًا، والنتيجة أخيرًا.
 
-**Status:** Task 2 — Home, Quick Check and Full Content input screens. Inputs are validated and
-*prepared* for later stages (claim review, extraction, OCR); no OCR, extraction or verification runs
-yet. Pipeline stages, trusted-source adapters and the LLM provider remain typed contracts/placeholders.
+**Status:** Task 3 — image OCR (Google Cloud Vision, backend-only) and the Review Extracted Text
+screen. Inputs are validated and prepared for Claim Extraction (Task 4); no claim extraction or
+verification runs yet. Pipeline stages, trusted-source adapters and the LLM provider remain typed contracts/placeholders.
 
 ## Repository layout
 
@@ -19,15 +19,17 @@ mizan/
 │   │   ├── pipeline/   Stage contracts, stubs, orchestrator skeleton
 │   │   ├── sources/    Trusted-source adapter contract, allowlist registry, placeholders
 │   │   ├── llm/        Provider abstraction (assistive only — never evidence)
+│   │   ├── ocr/        OCR provider contract, Google Vision adapter, image validation
 │   │   ├── api/v1/     HTTP API (health only, for now)
 │   │   ├── db/         SQLAlchemy engine/session (no tables yet)
 │   │   └── config.py   Environment configuration
 │   ├── migrations/     Alembic (no revisions yet)
 │   └── tests/
 ├── frontend/           Next.js (App Router) + TypeScript + Tailwind, Arabic RTL
-│   ├── src/app/        routes: / · /quick-check · /full-content · /status
-│   ├── src/features/   quick-check/, full-content/ (input screens)
+│   ├── src/app/        routes: / · /quick-check · /full-content · /full-content/review · /status
+│   ├── src/features/   quick-check/, full-content/, ocr-review/
 │   ├── src/lib/input/  typed input contracts, validation, in-memory input session
+│   ├── src/lib/ocr/    OCR contract mirror + backend OCR client
 │   ├── src/i18n/       centralized UI strings (ar)
 │   └── tests/          unit/, components/ (jsdom), integration/
 ├── contracts/          domain-contracts.json — shared enum snapshot (generated)
@@ -63,6 +65,18 @@ npm install
 cp .env.example .env.local
 npm run dev                        # http://localhost:3000
 ```
+
+## OCR (image input)
+
+OCR runs on the backend with Google Cloud Vision. To enable it, set in `backend/.env`:
+
+```
+OCR_PROVIDER=google_vision
+GOOGLE_VISION_API_KEY=<key restricted to the Cloud Vision API>
+```
+
+Without it, image upload shows "OCR service is not configured" (the text mode still works).
+Upload limit: 7 MB, JPG/PNG. See `docs/INTEGRATION_TODO.md`.
 
 ## Health checks
 

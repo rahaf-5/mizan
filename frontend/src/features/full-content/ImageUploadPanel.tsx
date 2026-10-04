@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type DragEvent, type FormEvent } from "react";
 import { Card } from "@/components/Card";
 import { ImageIcon, UploadIcon } from "@/components/icons";
@@ -7,17 +8,43 @@ import { Button } from "@/components/ui/Button";
 import { FieldError } from "@/components/ui/FieldError";
 import { Notice } from "@/components/ui/Notice";
 import { getDictionary } from "@/i18n";
-import { formatFileSize } from "@/lib/format";
+import { formatFileSize, formatNumber } from "@/lib/format";
 import { useInputSession } from "@/lib/input/InputSessionProvider";
-import { prepareContentImage } from "@/lib/input/submission";
 import { ACCEPTED_IMAGE_EXTENSIONS, ACCEPTED_IMAGE_TYPES } from "@/lib/input/types";
 import { hasImageSignature, validateImageFile } from "@/lib/input/validation";
+import { runOcr, type OcrCallResult } from "@/lib/ocr/client";
+import { OCR_MAX_UPLOAD_MB } from "@/lib/ocr/types";
 
 const t = getDictionary();
 const ACCEPT = [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_IMAGE_EXTENSIONS].join(",");
+const MB = formatNumber(OCR_MAX_UPLOAD_MB);
+
+type OcrProblem = { message: string; retryable: boolean } | null;
+
+/** Technical OCR problems — shown as processing errors, never as content judgements. */
+function problemFor(result: Exclude<OcrCallResult, { kind: "extraction" | "input_error" }>): OcrProblem {
+  if (result.kind === "network_error") return { message: t.fullContent.ocrFailedNetwork, retryable: true };
+  if (result.code === "ocr_not_configured") return { message: t.fullContent.ocrNotConfigured, retryable: false };
+  return { message: t.fullContent.ocrFailedTechnical, retryable: result.retryable };
+}
+
+function inputErrorMessage(code: string): string {
+  switch (code) {
+    case "file_too_large":
+      return t.fullContent.imageErrorTooLarge(MB);
+    case "empty_file":
+      return t.fullContent.imageErrorEmpty;
+    case "image_too_many_pixels":
+      return t.fullContent.imageErrorTooManyPixels;
+    case "unreadable_image":
+      return t.fullContent.imageErrorCorrupt;
+    default:
+      return t.fullContent.imageErrorType;
+  }
+}
 
 /** Object URL for previewing the selected image (revoked on change/unmount). */
-function usePreviewUrl(file: File | null): string | null {
+export function usePreviewUrl(file: File | null): string | null {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     if (!file || typeof URL.createObjectURL !== "function") return;
@@ -34,24 +61,34 @@ function usePreviewUrl(file: File | null): string | null {
 }
 
 /**
- * Image mode — upload UI and state only (Task 2). OCR is Task 3: no text is
- * produced or faked here. Next: Image → OCR → Review Extracted Text → Claim Extraction.
+ * Image mode. Sends the image to the Mizan backend for OCR, then opens the
+ * Review Extracted Text screen. OCR output is NEVER sent to claim extraction
+ * or verification from here.
  */
 export function ImageUploadPanel() {
+  const router = useRouter();
   const { state, dispatch } = useInputSession();
   const [error, setError] = useState<string | null>(null);
+  const [problem, setProblem] = useState<OcrProblem>(null);
+  const [processing, setProcessing] = useState(false);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const ids = { input: useId(), hint: useId(), error: useId() };
+  const ids = { input: useId(), hint: useId(), error: useId(), status: useId() };
   const image = state.image;
   const previewUrl = usePreviewUrl(image?.file ?? null);
-  const prepared = state.prepared?.kind === "full_content_image" ? state.prepared : null;
 
   const selectFile = async (file: File | undefined) => {
     if (!file) return;
+    setProblem(null);
     const check = validateImageFile(file);
     if (!check.ok) {
-      setError(check.reason === "empty_file" ? t.fullContent.imageErrorEmpty : t.fullContent.imageErrorType);
+      setError(
+        check.reason === "empty_file"
+          ? t.fullContent.imageErrorEmpty
+          : check.reason === "too_large"
+            ? t.fullContent.imageErrorTooLarge(MB)
+            : t.fullContent.imageErrorType,
+      );
       return;
     }
     if (!(await hasImageSignature(file, check.type))) {
@@ -68,7 +105,24 @@ export function ImageUploadPanel() {
   const onDrop = (e: DragEvent) => {
     e.preventDefault();
     setDragging(false);
-    void selectFile(e.dataTransfer.files?.[0]);
+    if (!processing) void selectFile(e.dataTransfer.files?.[0]);
+  };
+
+  const startOcr = async () => {
+    if (!image || processing) return;
+    setError(null);
+    setProblem(null);
+    setProcessing(true);
+    const result = await runOcr(image.file, image.name);
+    setProcessing(false);
+    if (result.kind === "extraction") {
+      dispatch({ type: "ocr/received", image, extraction: result.data });
+      router.push("/full-content/review");
+    } else if (result.kind === "input_error") {
+      setError(inputErrorMessage(result.code));
+    } else {
+      setProblem(problemFor(result));
+    }
   };
 
   const onSubmit = (e: FormEvent) => {
@@ -78,28 +132,12 @@ export function ImageUploadPanel() {
       inputRef.current?.focus();
       return;
     }
-    setError(null);
-    dispatch({ type: "prepared/set", submission: prepareContentImage(image) });
+    void startOcr();
   };
-
-  if (prepared) {
-    return (
-      <Notice tone="success" role="status" title={t.fullContent.imagePreparedTitle}>
-        <p className="font-medium" dir="auto">
-          {prepared.image.name}
-        </p>
-        <p>{t.fullContent.imagePreparedNext}</p>
-        <p className="text-sm text-[var(--color-muted)]">{t.common.nextStepPending}</p>
-        <Button variant="secondary" onClick={() => dispatch({ type: "prepared/clear" })}>
-          {t.common.edit}
-        </Button>
-      </Notice>
-    );
-  }
 
   return (
     <Card>
-      <form noValidate onSubmit={onSubmit} className="space-y-4">
+      <form noValidate onSubmit={onSubmit} className="space-y-4" aria-busy={processing || undefined}>
         <div className="space-y-2">
           <p className="text-lg font-bold">{t.fullContent.imageLabel}</p>
           <p id={ids.hint} className="text-sm text-[var(--color-muted)]">
@@ -143,7 +181,9 @@ export function ImageUploadPanel() {
                     </label>
                     <Button
                       variant="ghost"
+                      disabled={processing}
                       onClick={() => {
+                        setProblem(null);
                         dispatch({ type: "content/setImage", image: null });
                         if (inputRef.current) inputRef.current.value = "";
                       }}
@@ -159,7 +199,7 @@ export function ImageUploadPanel() {
                   <UploadIcon className="size-7" />
                 </span>
                 <p className="font-medium">{t.fullContent.imageDropTitle}</p>
-                <p className="text-sm text-[var(--color-muted)]">{t.fullContent.imageFormats}</p>
+                <p className="text-sm text-[var(--color-muted)]">{t.fullContent.imageFormats(MB)}</p>
                 <label
                   htmlFor={ids.input}
                   className="inline-flex min-h-11 cursor-pointer items-center rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-card)] px-5 py-2 font-medium hover:border-[var(--color-brand)]"
@@ -173,6 +213,7 @@ export function ImageUploadPanel() {
               ref={inputRef}
               type="file"
               accept={ACCEPT}
+              disabled={processing}
               aria-label={t.fullContent.imageChoose}
               aria-describedby={[ids.hint, error ? ids.error : null].filter(Boolean).join(" ")}
               aria-invalid={error ? true : undefined}
@@ -182,9 +223,34 @@ export function ImageUploadPanel() {
           </div>
           <FieldError id={ids.error} message={error} />
         </div>
-        <Button type="submit" className="w-full sm:w-auto">
-          {t.fullContent.imageSubmit}
-        </Button>
+
+        {problem ? (
+          <Notice tone="warning" role="alert" title={t.fullContent.ocrFailedTitle}>
+            <p>{problem.message}</p>
+            {problem.retryable ? (
+              <Button variant="secondary" onClick={() => void startOcr()}>
+                {t.fullContent.ocrRetry}
+              </Button>
+            ) : null}
+          </Notice>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="submit" className="w-full sm:w-auto" disabled={processing}>
+            {t.fullContent.imageSubmit}
+          </Button>
+          <p id={ids.status} role="status" className="flex items-center gap-2 text-[var(--color-muted)]">
+            {processing ? (
+              <>
+                <span
+                  aria-hidden="true"
+                  className="size-4 animate-spin rounded-full border-2 border-[var(--color-brand)] border-t-transparent"
+                />
+                {t.fullContent.ocrProcessing}
+              </>
+            ) : null}
+          </p>
+        </div>
       </form>
     </Card>
   );

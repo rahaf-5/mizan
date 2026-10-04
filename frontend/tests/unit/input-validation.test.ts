@@ -77,6 +77,12 @@ describe("image validation (JPG/PNG only)", () => {
     expect(validateImageFile(f(name, type))).toEqual({ ok: false, reason: "unsupported_type" });
   });
 
+  it("enforces the 7 MB upload limit", () => {
+    const limit = 7 * 1024 * 1024;
+    expect(validateImageFile(f("a.png", "image/png", limit))).toEqual({ ok: true, type: "image/png" });
+    expect(validateImageFile(f("a.png", "image/png", limit + 1))).toEqual({ ok: false, reason: "too_large" });
+  });
+
   it("rejects empty files", () => {
     expect(validateImageFile(f("a.png", "image/png", 0))).toEqual({ ok: false, reason: "empty_file" });
   });

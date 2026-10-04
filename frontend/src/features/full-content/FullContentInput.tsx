@@ -12,7 +12,7 @@ export function FullContentInput() {
   const setMode = (mode: ContentMode) => {
     if (mode === state.contentMode) return;
     dispatch({ type: "content/setMode", mode });
-    if (state.prepared?.kind === "full_content_text" || state.prepared?.kind === "full_content_image") {
+    if (state.prepared?.kind === "full_content_text") {
       dispatch({ type: "prepared/clear" });
     }
   };

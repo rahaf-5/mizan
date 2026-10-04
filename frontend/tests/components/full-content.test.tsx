@@ -4,13 +4,21 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FullContentInput } from "@/features/full-content/FullContentInput";
 import { useInputSession } from "@/lib/input/InputSessionProvider";
-import { jpegFile, pngFile, renderWithSession } from "../helpers";
+import { jpegFile, jsonResponse, makeExtraction, pngFile, renderWithSession } from "../helpers";
+
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 function SessionProbe() {
   const { state } = useInputSession();
   return (
     <div data-testid="probe">
-      {JSON.stringify({ prepared: state.prepared, image: state.image?.name ?? null, text: state.contentText })}
+      {JSON.stringify({
+        prepared: state.prepared,
+        image: state.image?.name ?? null,
+        text: state.contentText,
+        ocr: state.ocr ? { raw: state.ocr.extraction.raw_text, reviewed: state.ocr.reviewedText } : null,
+      })}
     </div>
   );
 }
@@ -18,13 +26,20 @@ const probe = () => JSON.parse(screen.getByTestId("probe").textContent || "{}");
 
 let fetchSpy: ReturnType<typeof vi.fn>;
 beforeEach(() => {
+  push.mockReset();
   fetchSpy = vi.fn();
   vi.stubGlobal("fetch", fetchSpy);
 });
 afterEach(() => {
   vi.unstubAllGlobals();
-  expect(fetchSpy).not.toHaveBeenCalled(); // no verification / OCR request in Task 2
+  // The only request this screen may ever make is the OCR upload — never extraction/verification.
+  for (const [url, init] of fetchSpy.mock.calls) {
+    expect(String(url)).toMatch(/\/api\/v1\/ocr$/);
+    expect(init?.method).toBe("POST");
+  }
 });
+
+const status = (text: string) => screen.getAllByRole("status").find((el) => el.textContent?.includes(text));
 
 const setup = (state = {}) =>
   renderWithSession(
@@ -88,14 +103,15 @@ describe("Full Content — text", () => {
     expect(prepared.kind).toBe("full_content_text");
     expect(prepared.next).toBe("claim_extraction");
     expect(prepared.extractionInput.text).toBe("فقرة\nثانية");
-    expect(screen.getByRole("status")).toHaveTextContent("تم تجهيز النص لاستخراج الادعاءات");
+    expect(status("تم تجهيز النص لاستخراج الادعاءات")).toBeTruthy();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
 
 describe("Full Content — image", () => {
   it("shows upload UI with accepted formats", async () => {
     setup({ contentMode: "image" });
-    expect(screen.getByText("الصيغ المقبولة: JPG أو PNG")).toBeInTheDocument();
+    expect(screen.getByText(/الصيغ المقبولة: JPG أو PNG — بحد أقصى 7 ميغابايت/)).toBeInTheDocument();
     expect(fileInput()).toHaveAttribute("accept", "image/jpeg,image/png,.jpg,.jpeg,.png");
   });
 
@@ -104,6 +120,7 @@ describe("Full Content — image", () => {
     setup({ contentMode: "image" });
     await user.click(screen.getByRole("button", { name: "رفع واستخراج النص" }));
     expect(screen.getByRole("alert")).toHaveTextContent("يرجى اختيار صورة أولًا.");
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -138,17 +155,94 @@ describe("Full Content — image", () => {
     expect(probe().image).toBeNull();
   });
 
-  it("prepares the image for OCR without producing any text", async () => {
-    const user = userEvent.setup();
+  it("rejects images over the 7 MB limit before uploading", async () => {
     setup({ contentMode: "image" });
-    fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
-    await waitFor(() => expect(probe().image).toBe("page.png"));
-    await user.click(screen.getByRole("button", { name: "رفع واستخراج النص" }));
-    const { prepared } = probe();
-    expect(prepared.kind).toBe("full_content_image");
-    expect(prepared.next).toBe("ocr");
-    expect(prepared.extractionInput).toBeUndefined();
-    expect(prepared.text).toBeUndefined();
-    expect(screen.getByRole("status")).toHaveTextContent("تم تجهيز الصورة لاستخراج النص");
+    const big = new File([new Uint8Array(7 * 1024 * 1024 + 1)], "big.png", { type: "image/png" });
+    fireEvent.change(fileInput(), { target: { files: [big] } });
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("حجم الصورة يتجاوز الحد المسموح (7 ميغابايت)"),
+    );
+    expect(probe().image).toBeNull();
+  });
+});
+
+async function selectAndSubmit(user: ReturnType<typeof userEvent.setup>) {
+  fireEvent.change(fileInput(), { target: { files: [pngFile()] } });
+  await waitFor(() => expect(probe().image).toBe("page.png"));
+  await user.click(screen.getByRole("button", { name: "رفع واستخراج النص" }));
+}
+
+describe("Full Content — OCR upload", () => {
+  it("uploads to the backend OCR endpoint and opens the review screen", async () => {
+    const user = userEvent.setup();
+    fetchSpy.mockResolvedValue(jsonResponse(makeExtraction({ raw_text: "نص خام" })));
+    setup({ contentMode: "image" });
+    await selectAndSubmit(user);
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/full-content/review"));
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [, init] = fetchSpy.mock.calls[0];
+    expect(init.body).toBeInstanceOf(FormData);
+    expect((init.body as FormData).get("image")).toBeInstanceOf(File);
+    // raw text stored for review; nothing prepared for extraction yet
+    expect(probe().ocr).toEqual({ raw: "نص خام", reviewed: "نص خام" });
+    expect(probe().prepared).toBeNull();
+  });
+
+  it("shows a processing state while OCR runs", async () => {
+    const user = userEvent.setup();
+    let resolve: (r: Response) => void = () => {};
+    fetchSpy.mockReturnValue(new Promise<Response>((r) => (resolve = r)));
+    setup({ contentMode: "image" });
+    await selectAndSubmit(user);
+    expect(status("جارٍ استخراج النص من الصورة")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "رفع واستخراج النص" })).toBeDisabled();
+    resolve(jsonResponse(makeExtraction()));
+    await waitFor(() => expect(push).toHaveBeenCalled());
+  });
+
+  it.each([
+    [{ kind: "failure", provider: "google_vision", error: { code: "ocr_error", stage: "user_input", message: "x", retryable: true } }, 502, "حدثت مشكلة تقنية أثناء استخراج النص", true],
+    [{ kind: "failure", provider: "google_vision", error: { code: "ocr_timeout", stage: "user_input", message: "x", retryable: true } }, 504, "حدثت مشكلة تقنية أثناء استخراج النص", true],
+    [{ kind: "failure", provider: "none", error: { code: "ocr_not_configured", stage: "user_input", message: "x", retryable: false } }, 503, "خدمة استخراج النص من الصور غير مهيأة", false],
+  ])("treats OCR failure as a technical problem (%#)", async (body, code, message, retryable) => {
+    const user = userEvent.setup();
+    fetchSpy.mockResolvedValue(jsonResponse(body, code));
+    setup({ contentMode: "image" });
+    await selectAndSubmit(user);
+    const alert = await screen.findByText(new RegExp(message));
+    expect(alert.closest("[role=alert]")).toHaveTextContent("تعذّر استخراج النص من الصورة");
+    expect(push).not.toHaveBeenCalled();
+    expect(probe().ocr).toBeNull();
+    expect(screen.queryByRole("button", { name: "إعادة المحاولة" }) !== null).toBe(retryable);
+    // never phrased as an evidence/verification result
+    expect(document.body.textContent).not.toMatch(/insufficient_evidence|no_evidence_found|contradicted/);
+  });
+
+  it("retries after a technical failure", async () => {
+    const user = userEvent.setup();
+    fetchSpy
+      .mockResolvedValueOnce(jsonResponse({ kind: "failure", provider: "g", error: { code: "ocr_error", stage: null, message: "x", retryable: true } }, 502))
+      .mockResolvedValueOnce(jsonResponse(makeExtraction()));
+    setup({ contentMode: "image" });
+    await selectAndSubmit(user);
+    await user.click(await screen.findByRole("button", { name: "إعادة المحاولة" }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/full-content/review"));
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("handles network errors", async () => {
+    const user = userEvent.setup();
+    fetchSpy.mockRejectedValue(new TypeError("Failed to fetch"));
+    setup({ contentMode: "image" });
+    await selectAndSubmit(user);
+    expect(await screen.findByText(/تعذّر الاتصال بخدمة استخراج النص/)).toBeInTheDocument();
+  });
+
+  it("shows backend content validation errors as file errors", async () => {
+    const user = userEvent.setup();
+    fetchSpy.mockResolvedValue(jsonResponse({ kind: "input_error", code: "unreadable_image", message: "x" }, 400));
+    setup({ contentMode: "image" });
+    await selectAndSubmit(user);
+    expect(await screen.findByText(/تعذّرت قراءة الملف كصورة JPG أو PNG/)).toBeInTheDocument();
   });
 });

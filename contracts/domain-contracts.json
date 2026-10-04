@@ -86,6 +86,8 @@
       "source_not_connected",
       "llm_provider_error",
       "ocr_error",
+      "ocr_not_configured",
+      "ocr_timeout",
       "database_error",
       "stage_not_implemented",
       "verification_incomplete",
@@ -129,6 +131,22 @@
       "asbab_al_nuzul_al_wahidi",
       "al_muharrar_fi_asbab_al_nuzul",
       "dorar_hadith"
+    ],
+    "OcrStatus": [
+      "completed",
+      "completed_with_warnings",
+      "no_text_found"
+    ],
+    "OcrWarningCode": [
+      "low_confidence_text",
+      "low_resolution_image"
+    ],
+    "OcrInputErrorCode": [
+      "unsupported_type",
+      "empty_file",
+      "file_too_large",
+      "unreadable_image",
+      "image_too_many_pixels"
     ]
   },
   "claimOutcomeKinds": [
@@ -136,6 +154,17 @@
     "out_of_scope",
     "system_error"
   ],
+  "ocr": {
+    "maxUploadBytes": 7340032,
+    "acceptedMimeTypes": [
+      "image/jpeg",
+      "image/png"
+    ],
+    "outcomeKinds": [
+      "extraction",
+      "failure"
+    ]
+  },
   "trustedSources": [
     {
       "id": "quran",

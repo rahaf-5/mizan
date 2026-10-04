@@ -24,6 +24,23 @@ User Input → Claim Extraction → User Review & Confirmation → Claim Classif
 `orchestrator.VerificationPipeline` wires the stages from Classification onwards. Extraction and
 confirmation are interactive (the user reviews claims in between), so they are driven by the API/UI.
 
+## Image input & OCR (Task 3)
+
+```
+Image ─▶ backend /api/v1/ocr ─▶ OcrProvider (Google Vision) ─▶ OcrExtraction (raw_text, unmodified)
+      ─▶ Review Extracted Text (user edits) ─▶ reviewed text ─▶ ExtractionInput(ocr_text_reviewed_by_user=true) ─▶ Task 4
+```
+
+- `app/domain/ocr.py`: `OcrExtraction` (status `completed | completed_with_warnings | no_text_found`,
+  warnings, provider confidence only when exposed) vs `OcrFailure` (technical, `SystemErrorInfo`).
+  Input problems (type/size/unreadable) are `input_error` responses, not technical failures.
+- `app/ocr/`: `OcrProvider` contract, `GoogleVisionOcrProvider`, content validation (magic bytes +
+  Pillow decode + pixel cap), `OcrService` (status/warnings from facts only).
+- Frontend keeps original image → raw OCR (never mutated) → reviewed text separately
+  (`InputSessionState.ocr`). Only reviewed text becomes the Task 4 input.
+- OCR never extracts claims, verifies, generates evidence, or rewrites text. OCR errors are never a
+  `VerificationStatus`. OCR confidence is not shown as a number and is not verification confidence.
+
 ## Per-claim outcomes
 
 A claim ends in exactly one of three structurally separate outcomes (`domain/results.py`):
@@ -66,6 +83,10 @@ orchestrator — not a domain rule.
    - extensible with further explicit reasons (with approval).
 3. **Quranpedia / Dorar** remain unresolved integration requirements until addressed before
    Task 5 (no invented APIs, endpoints, keys, scraping, caching or indexing rights).
+
+4. **Task 3 locks.** Upload limit 7 MB JPG/PNG (from Google Vision's 10 MB request limit);
+   OCR provider Google Cloud Vision behind a provider-neutral contract; in-memory drafts only;
+   multi-claim guidance stays a non-blocking heuristic.
 
 ## Open decisions
 

@@ -14,11 +14,18 @@ import {
   USER_CONFIRMATION_STATUSES,
   VERIFICATION_STATUSES,
 } from "@/lib/domain";
+import {
+  OCR_INPUT_ERROR_CODES,
+  OCR_MAX_UPLOAD_BYTES,
+  OCR_STATUSES,
+  OCR_WARNING_CODES,
+} from "@/lib/ocr/types";
 
 const snapshotPath = fileURLToPath(new URL("../../../contracts/domain-contracts.json", import.meta.url));
 const snapshot = JSON.parse(readFileSync(snapshotPath, "utf-8")) as {
   enums: Record<string, string[]>;
   claimOutcomeKinds: string[];
+  ocr: { maxUploadBytes: number; acceptedMimeTypes: string[] };
 };
 
 describe("frontend domain mirror matches the backend contract snapshot", () => {
@@ -33,8 +40,16 @@ describe("frontend domain mirror matches the backend contract snapshot", () => {
     ["TrustedSourceId", TRUSTED_SOURCE_IDS],
     ["CheckMode", CHECK_MODES],
     ["InputType", INPUT_TYPES],
+    ["OcrStatus", OCR_STATUSES],
+    ["OcrWarningCode", OCR_WARNING_CODES],
+    ["OcrInputErrorCode", OCR_INPUT_ERROR_CODES],
   ] as const)("%s", (name, values) => {
     expect([...values]).toEqual(snapshot.enums[name]);
+  });
+
+  it("OCR upload limit and accepted types", () => {
+    expect(OCR_MAX_UPLOAD_BYTES).toBe(snapshot.ocr.maxUploadBytes);
+    expect(snapshot.ocr.acceptedMimeTypes).toEqual(["image/jpeg", "image/png"]);
   });
 
   it("claim outcome kinds", () => {

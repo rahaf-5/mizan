@@ -8,9 +8,11 @@
  * Approved flow:
  *   Quick Check:   claim text → (Task 4) review/confirm → verification
  *   Full (text):   text → (Task 4) claim extraction → claim review → verification
- *   Full (image):  image → (Task 3) OCR → review extracted text → claim extraction → …
+ *   Full (image):  image → OCR → review extracted text (user edits/confirms)
+ *                  → (Task 4) claim extraction → claim review → verification
  */
 import type { CheckMode, InputType } from "@/lib/domain";
+import type { OcrExtraction } from "@/lib/ocr/types";
 
 /** Mirrors backend `ExtractionInput` (backend/app/domain/inputs.py). */
 export interface ExtractionInputPayload {
@@ -36,7 +38,17 @@ export interface ImageSelection {
 export type ContentMode = Extract<InputType, "text" | "image">;
 
 /** The step each prepared submission is waiting for (none of them is verification). */
-export type NextStep = "claim_confirmation" | "claim_extraction" | "ocr";
+export type NextStep = "claim_confirmation" | "claim_extraction";
+
+/**
+ * OCR session for the image flow. Keeps the three stages separate:
+ * original image → raw OCR output (never modified) → user-reviewed text.
+ */
+export interface OcrSession {
+  image: ImageSelection;
+  extraction: OcrExtraction;
+  reviewedText: string;
+}
 
 export type PreparedSubmission =
   | {
@@ -53,11 +65,12 @@ export type PreparedSubmission =
     }
   | {
       /**
-       * Deliberately has NO text / ExtractionInputPayload: an image cannot reach
-       * Claim Extraction until OCR text exists and the user has reviewed it (spec §16).
+       * User-reviewed OCR text. ONLY this (never raw OCR output) may enter
+       * Claim Extraction; `ocr_text_reviewed_by_user` is true by construction.
        */
-      kind: "full_content_image";
+      kind: "full_content_reviewed_ocr_text";
       preparedAt: string;
-      image: ImageSelection;
-      next: "ocr";
+      extractionInput: ExtractionInputPayload & { input_type: "image"; ocr_text_reviewed_by_user: true };
+      ocr: { ocrId: string; provider: string; rawText: string; editedByUser: boolean };
+      next: "claim_extraction";
     };

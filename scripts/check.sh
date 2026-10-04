@@ -16,4 +16,10 @@ npm run --silent typecheck
 npm run --silent lint
 npm run --silent build
 
+echo "== Frontend bundle must not reference OCR provider credentials =="
+if grep -rqE "GOOGLE_VISION|googleapis|x-goog-api-key" .next/static; then
+  echo "Provider credentials/endpoints found in the frontend bundle" >&2
+  exit 1
+fi
+
 echo "All checks passed."

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from app.config import Settings, get_settings
 from app.db.session import check_database
+from app.ocr.factory import build_ocr_provider
 from app.sources.registry import build_default_registry
 
 router = APIRouter(prefix="/health", tags=["health"])
@@ -58,9 +59,14 @@ async def health(settings: Annotated[Settings, Depends(get_settings)]) -> Health
             status="not_configured" if settings.llm_provider == "none" else "configured",
             detail=settings.llm_provider,
         ),
-        ocr=ComponentStatus(
-            status="not_configured" if settings.ocr_provider == "none" else "configured",
-            detail=settings.ocr_provider,
-        ),
+        ocr=_ocr_status(settings),
         trusted_sources=sources,
     )
+
+
+def _ocr_status(settings: Settings) -> ComponentStatus:
+    provider = build_ocr_provider(settings)
+    if provider is None:
+        return ComponentStatus(status="not_configured", detail="none")
+    status = "configured" if provider.is_configured() else "missing_credentials"
+    return ComponentStatus(status=status, detail=provider.name)

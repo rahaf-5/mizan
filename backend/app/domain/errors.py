@@ -56,6 +56,21 @@ class SourceUnavailableError(MizanError):
     code = SystemErrorCode.SOURCE_UNAVAILABLE
 
 
+class OcrProviderError(MizanError):
+    """OCR provider returned an error or an unusable response (technical)."""
+
+    code = SystemErrorCode.OCR_ERROR
+
+
+class OcrNotConfiguredError(MizanError):
+    code = SystemErrorCode.OCR_NOT_CONFIGURED
+    retryable = False
+
+
+class OcrTimeoutError(MizanError):
+    code = SystemErrorCode.OCR_TIMEOUT
+
+
 class LLMProviderError(MizanError):
     code = SystemErrorCode.LLM_PROVIDER_ERROR
 
