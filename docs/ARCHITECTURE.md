@@ -46,7 +46,9 @@ Full Content text ─▶ POST /api/v1/claims/extract ─▶ LlmClaimExtractor �
   validates `ClaimExtractionDraft`, drops claims whose `source_excerpt` is not found in the content
   (Arabic-normalised match, matching only), de-duplicates, and returns claims in `pending` status.
 - `app/llm/gemini.py` is the only Gemini-specific code (REST `generateContent`, header auth,
-  `responseFormat.text` JSON schema, `thinkingConfig.thinkingLevel`). Nothing outside `app/llm`
+  `generationConfig.responseMimeType = "application/json"` + `responseJsonSchema`,
+  `thinkingConfig.thinkingLevel` as enum name e.g. `LOW`). Our own Pydantic validation of the
+  returned JSON remains the final gate regardless of Google's schema enforcement. Nothing outside `app/llm`
   imports it; selection happens in `app/llm/factory.py` from settings.
 - LLM output types (`app/llm/schemas.py`) cannot carry evidence, citations, references (other than
   text the user wrote), gradings or verdicts (tests in `test_llm_contracts.py`).

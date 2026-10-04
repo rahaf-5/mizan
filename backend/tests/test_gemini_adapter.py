@@ -81,10 +81,11 @@ async def test_request_shape_and_header_auth():
     body = seen["body"]
     assert body["system_instruction"]["parts"][0]["text"] == "SYS"
     assert body["contents"][0]["parts"][0]["text"] == "CONTENT"
-    fmt = body["generationConfig"]["responseFormat"]["text"]
-    assert fmt["mimeType"] == "application/json"
-    assert "$defs" not in json.dumps(fmt["schema"]) and "claims" in fmt["schema"]["properties"]
-    assert body["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "low"}
+    gen = body["generationConfig"]
+    assert gen["responseMimeType"] == "application/json"
+    assert "$defs" not in json.dumps(gen["responseJsonSchema"])
+    assert "claims" in gen["responseJsonSchema"]["properties"]
+    assert gen["thinkingConfig"] == {"thinkingLevel": "LOW"}
 
 
 async def test_thought_parts_are_ignored():
@@ -232,3 +233,86 @@ async def test_content_never_logged(logs):
             lambda r: httpx.Response(200, json=ok_response({"claims": [{"x": secret_text}]}))
         ).generate_structured(req, ClaimExtractionDraft)
     assert secret_text not in logs.text
+
+
+# --- Regression: real 400 from the first live smoke test (2026-10-04) --------------
+# Google rejected `generationConfig.responseFormat.text.mimeType = "application/json"` with
+# INVALID_ARGUMENT. The adapter must use responseMimeType + responseJsonSchema instead.
+
+REAL_400 = {
+    "error": {
+        "code": 400,
+        "message": (
+            "Invalid value at 'generation_config.response_format.text.mime_type' "
+            "(type.googleapis.com/google.ai.generativelanguage.v1beta"
+            ".TextResponseFormat.MimeType), "
+            '"application/json"'
+        ),
+        "status": "INVALID_ARGUMENT",
+        "details": [{"@type": "type.googleapis.com/google.rpc.BadRequest"}],
+    }
+}
+
+
+async def test_request_never_uses_rejected_response_format_field():
+    seen = {}
+
+    def handler(r: httpx.Request):
+        seen["body"] = json.loads(r.content)
+        return httpx.Response(200, json=ok_response(GOOD))
+
+    await provider(handler, thinking_level="low").generate_structured(REQ, ClaimExtractionDraft)
+    gen = seen["body"]["generationConfig"]
+    assert "responseFormat" not in gen and "response_format" not in json.dumps(seen["body"])
+    assert set(gen) == {"responseMimeType", "responseJsonSchema", "thinkingConfig"}
+    assert gen["responseMimeType"] == "application/json"
+    assert isinstance(gen["responseJsonSchema"], dict)
+    assert gen["responseJsonSchema"]["type"] == "object"
+    assert gen["responseJsonSchema"]["additionalProperties"] is False
+
+
+@pytest.mark.parametrize(
+    "level,expected", [("minimal", "MINIMAL"), ("low", "LOW"), ("high", "HIGH")]
+)
+async def test_thinking_level_is_sent_as_canonical_enum_name(level, expected):
+    seen = {}
+
+    def handler(r):
+        seen["body"] = json.loads(r.content)
+        return httpx.Response(200, json=ok_response(GOOD))
+
+    await provider(handler, thinking_level=level).generate_structured(REQ, ClaimExtractionDraft)
+    assert seen["body"]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": expected}
+
+
+async def test_no_thinking_config_when_level_empty():
+    seen = {}
+
+    def handler(r):
+        seen["body"] = json.loads(r.content)
+        return httpx.Response(200, json=ok_response(GOOD))
+
+    await provider(handler, thinking_level="").generate_structured(REQ, ClaimExtractionDraft)
+    assert "thinkingConfig" not in seen["body"]["generationConfig"]
+
+
+async def test_real_400_invalid_argument_is_a_non_retryable_provider_error(logs):
+    with pytest.raises(LLMProviderError) as e:
+        await provider(lambda r: httpx.Response(400, json=REAL_400)).generate_structured(
+            REQ, ClaimExtractionDraft
+        )
+    assert not isinstance(e.value, (LLMAuthError, LLMRateLimitedError, LLMTimeoutError))
+    assert e.value.retryable is False
+    assert "HTTP 400 INVALID_ARGUMENT" in str(e.value)
+    # full Google message is kept in the dev log for diagnosis (no key there)
+    assert "generation_config.response_format.text.mime_type" in logs.text
+    assert KEY not in logs.text
+
+
+async def test_strict_validation_still_applies_with_native_json_schema():
+    """Even if Google honours the schema, our Pydantic validation is the final gate."""
+    bad = ok_response({"claims": [{**GOOD["claims"][0], "verdict": "صحيح"}]})
+    with pytest.raises(LLMInvalidResponseError):
+        await provider(lambda r: httpx.Response(200, json=bad)).generate_structured(
+            REQ, ClaimExtractionDraft
+        )

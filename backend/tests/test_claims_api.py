@@ -245,3 +245,23 @@ def test_health_reports_llm_without_secret():
     bad = client(None, Settings(llm_provider="gemini", gemini_api_key="‏" + SECRET))
     r = bad.get("/api/v1/health")
     assert r.json()["llm_provider"]["status"] == "invalid_credentials" and SECRET not in r.text
+
+
+def test_real_gemini_400_surfaces_as_technical_failure_not_no_claims():
+    """Regression for the first live smoke test: HTTP 400 INVALID_ARGUMENT from Gemini."""
+    import httpx
+
+    from app.llm.gemini import GeminiProvider
+    from tests.test_gemini_adapter import REAL_400
+
+    gemini = GeminiProvider(
+        api_key=SECRET,
+        model="gemini-3.5-flash-lite",
+        transport=httpx.MockTransport(lambda r: httpx.Response(400, json=REAL_400)),
+    )
+    r = client(gemini).post("/api/v1/claims/extract", json={"text": KAHF})
+    assert r.status_code == 502
+    body = r.json()
+    assert body["kind"] == "failure" and "claims" not in body
+    assert body["error"]["code"] == "llm_provider_error" and body["error"]["retryable"] is False
+    assert "response_format" not in r.text and SECRET not in r.text  # internals not exposed

@@ -8,8 +8,13 @@ Official docs used (checked 2026-10-04):
   - POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
   - auth header `x-goog-api-key`
   - system_instruction / contents / generationConfig
-  - structured output: generationConfig.responseFormat.text {mimeType, schema}
-  - thinking: generationConfig.thinkingConfig.thinkingLevel (minimal|low|medium|high)
+  - structured output: generationConfig.responseMimeType = "application/json" +
+    generationConfig.responseJsonSchema (the mechanism the official google-genai SDK uses for
+    the Gemini Developer API; `responseFormat` is only sent by the SDK to Vertex AI and was
+    rejected by this API with 400 INVALID_ARGUMENT on
+    generation_config.response_format.text.mime_type — see tests/test_gemini_adapter.py)
+  - thinking: generationConfig.thinkingConfig.thinkingLevel, sent as the canonical enum
+    name (MINIMAL | LOW | MEDIUM | HIGH)
   - errors: 400/401/403/404/429/500/503/504; blocked generations (safety, recitation, …)
 Logged: HTTP status, provider status/reason, sizes. Never logged: API key, content.
 """
@@ -98,12 +103,11 @@ class GeminiProvider(LLMProvider):
 
     def _body(self, request: LLMRequest, output_type: type[T]) -> dict:
         generation: dict[str, Any] = {
-            "responseFormat": {
-                "text": {"mimeType": "application/json", "schema": inline_schema(output_type)}
-            },
+            "responseMimeType": "application/json",
+            "responseJsonSchema": inline_schema(output_type),
         }
         if self._thinking:
-            generation["thinkingConfig"] = {"thinkingLevel": self._thinking}
+            generation["thinkingConfig"] = {"thinkingLevel": self._thinking.upper()}
         return {
             "system_instruction": {"parts": [{"text": request.system_prompt}]},
             "contents": [{"role": "user", "parts": [{"text": request.user_content}]}],

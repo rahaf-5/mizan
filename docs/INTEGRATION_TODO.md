@@ -46,6 +46,10 @@ Implemented in `backend/app/llm/gemini.py` behind `LLMProvider`. Backend-only; k
 `x-goog-api-key` header; never logged, returned, or sent to the frontend.
 
 - Model: `gemini-3.5-flash-lite` (configurable via `GEMINI_MODEL`), `GEMINI_THINKING_LEVEL=low`.
+- Structured output request: `generationConfig.responseMimeType="application/json"` +
+  `generationConfig.responseJsonSchema` (as the official google-genai SDK sends to the Gemini
+  Developer API). `generationConfig.responseFormat.text.mimeType` was rejected live with
+  `400 INVALID_ARGUMENT` (first smoke test, 2026-10-04) and is not used.
 - Facts from official docs (checked 2026-10-04): listed as a stable model; Free Tier "Free of
   charge" for input/output; structured outputs supported; free-tier rate limits are shown per
   project in Google AI Studio (not published as fixed numbers).
