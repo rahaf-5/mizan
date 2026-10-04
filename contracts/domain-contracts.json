@@ -85,6 +85,12 @@
       "source_unavailable",
       "source_not_connected",
       "llm_provider_error",
+      "llm_not_configured",
+      "llm_auth_failed",
+      "llm_rate_limited",
+      "llm_timeout",
+      "llm_invalid_response",
+      "llm_content_blocked",
       "database_error",
       "stage_not_implemented",
       "verification_incomplete",
@@ -134,6 +140,11 @@
     "out_of_scope",
     "system_error"
   ],
+  "limits": {
+    "claimExtractionMaxInputChars": 10000,
+    "claimMaxChars": 1000,
+    "maxReviewClaims": 50
+  },
   "trustedSources": [
     {
       "id": "quran",

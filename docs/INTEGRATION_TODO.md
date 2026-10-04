@@ -40,10 +40,21 @@ Needed:
 The dev database image supports pgvector, but **no semantic indexing is implemented** and no
 permission to copy or index Quranpedia/Dorar content is assumed.
 
-## LLM provider (Task 4+) — `backend/app/llm/`
+## LLM provider — Gemini Developer API (current MVP adapter, Task 4)
 
-- [ ] Anthropic is the planned first adapter (`llm/anthropic.py`, not wired). Needs `ANTHROPIC_API_KEY`, model choice.
-- [ ] Data-handling review for sending user content to the provider.
+Implemented in `backend/app/llm/gemini.py` behind `LLMProvider`. Backend-only; key in the
+`x-goog-api-key` header; never logged, returned, or sent to the frontend.
+
+- Model: `gemini-3.5-flash-lite` (configurable via `GEMINI_MODEL`), `GEMINI_THINKING_LEVEL=low`.
+- Facts from official docs (checked 2026-10-04): listed as a stable model; Free Tier "Free of
+  charge" for input/output; structured outputs supported; free-tier rate limits are shown per
+  project in Google AI Studio (not published as fixed numbers).
+- [ ] **Privacy (must decide before production):** Gemini Free Tier pricing page states content
+      sent on the free tier is "used to improve our products"; the paid tier states it is not.
+      Only the submitted text is sent (no other app data). Decide whether a paid tier or a user
+      notice is required before public launch.
+- [ ] Real-provider smoke test: `cd backend && python -m app.cli.smoke_claim_extraction`
+      (the Cowork sandbox cannot reach generativelanguage.googleapis.com).
 
 ## OCR — REMOVED FROM MVP SCOPE (2026-10-04)
 

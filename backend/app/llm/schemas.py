@@ -33,17 +33,44 @@ class LLMOutput(BaseModel):
 
 
 class ExtractedClaimDraft(LLMOutput):
-    extracted_claim_text: str = Field(min_length=1)
-    extraction_status: ExtractionStatus
-    #: An ayah/hadith quoted IN THE USER'S CONTENT (user-provided, not evidence).
-    provided_evidence_type: ProvidedEvidenceType | None = None
-    provided_evidence_text: str | None = None
+    """One verifiable religious claim found in the user's content.
+
+    Extraction is NOT verification: no verdicts, gradings, citations or
+    evidence. `source_excerpt` must be copied verbatim from the content so the
+    claim can be checked as grounded (no invented claims).
+    """
+
+    extracted_claim_text: str = Field(
+        min_length=1,
+        max_length=1000,
+        description=(
+            "One atomic, self-contained religious claim in Arabic, preserving the user's meaning "
+            "and wording; no corrections, no judgement, no added information."
+        ),
+    )
+    source_excerpt: str = Field(
+        min_length=1,
+        max_length=2000,
+        description="The exact span copied verbatim from the content that states this claim.",
+    )
+    extraction_status: ExtractionStatus = Field(
+        description="clear | ambiguous (meaning unclear) | incomplete (cut off / missing parts).",
+    )
+    #: An ayah/hadith quoted IN THE USER'S CONTENT as support (user-provided, not evidence).
+    provided_evidence_type: ProvidedEvidenceType | None = Field(
+        default=None, description="quran | hadith if the content quotes one as support, else null."
+    )
+    provided_evidence_text: str | None = Field(
+        default=None, max_length=2000, description="The quoted ayah/hadith text exactly as written."
+    )
     #: Reference text exactly as written by the user, if any.
-    user_written_reference: str | None = None
+    user_written_reference: str | None = Field(
+        default=None, max_length=500, description="A reference written in the content, verbatim."
+    )
 
 
 class ClaimExtractionDraft(LLMOutput):
-    claims: list[ExtractedClaimDraft] = Field(default_factory=list)
+    claims: list[ExtractedClaimDraft] = Field(default_factory=list, max_length=50)
 
 
 # --- Classification assistance ---------------------------------------------

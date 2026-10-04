@@ -25,6 +25,13 @@ class LLMProvider(ABC):
 
     name: str
 
+    def is_configured(self) -> bool:
+        return True
+
+    @property
+    def config_problem(self) -> str | None:
+        return None
+
     @abstractmethod
     async def generate_structured(self, request: LLMRequest, output_type: type[T]) -> T: ...
 

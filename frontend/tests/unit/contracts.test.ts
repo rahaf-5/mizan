@@ -14,11 +14,13 @@ import {
   USER_CONFIRMATION_STATUSES,
   VERIFICATION_STATUSES,
 } from "@/lib/domain";
+import { CLAIM_EXTRACTION_MAX_INPUT_CHARS, CLAIM_MAX_CHARS, MAX_REVIEW_CLAIMS } from "@/lib/claims/types";
 
 const snapshotPath = fileURLToPath(new URL("../../../contracts/domain-contracts.json", import.meta.url));
 const snapshot = JSON.parse(readFileSync(snapshotPath, "utf-8")) as {
   enums: Record<string, string[]>;
   claimOutcomeKinds: string[];
+  limits: { claimExtractionMaxInputChars: number; claimMaxChars: number; maxReviewClaims: number };
 };
 
 describe("frontend domain mirror matches the backend contract snapshot", () => {
@@ -41,6 +43,12 @@ describe("frontend domain mirror matches the backend contract snapshot", () => {
     expect([...INPUT_TYPES]).toEqual(["text"]);
     expect(Object.keys(snapshot.enums).filter((k) => k.toLowerCase().includes("ocr"))).toEqual([]);
     expect("ocr" in snapshot).toBe(false);
+  });
+
+  it("claim extraction / review limits", () => {
+    expect(CLAIM_EXTRACTION_MAX_INPUT_CHARS).toBe(snapshot.limits.claimExtractionMaxInputChars);
+    expect(CLAIM_MAX_CHARS).toBe(snapshot.limits.claimMaxChars);
+    expect(MAX_REVIEW_CLAIMS).toBe(snapshot.limits.maxReviewClaims);
   });
 
   it("claim outcome kinds", () => {

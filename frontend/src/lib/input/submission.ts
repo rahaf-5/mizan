@@ -15,16 +15,3 @@ export function prepareQuickCheckClaim(text: string): PreparedSubmission {
     },
   };
 }
-
-export function prepareContentText(text: string): PreparedSubmission {
-  return {
-    kind: "full_content_text",
-    preparedAt: now(),
-    next: "claim_extraction",
-    extractionInput: {
-      mode: "full_content",
-      input_type: "text",
-      text,
-    },
-  };
-}

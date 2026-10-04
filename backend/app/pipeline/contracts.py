@@ -30,6 +30,8 @@ class ClaimExtractionResult(BaseModel):
     claims: list[Claim] = Field(default_factory=list)
     #: Quick Check received a paragraph / several claims -> suggest Full Content Check (spec §2A).
     suggest_full_content_check: bool = False
+    #: Model-proposed claims dropped because they were not found in the submitted content.
+    discarded_ungrounded_count: int = Field(default=0, ge=0)
 
 
 @runtime_checkable

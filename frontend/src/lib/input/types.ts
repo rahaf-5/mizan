@@ -7,7 +7,8 @@
  *
  * MVP flow (text only — image input/OCR is out of MVP scope):
  *   Quick Check:   claim text → (Task 4) review/confirm → verification
- *   Full Content:  text → (Task 4) claim extraction → claim review → verification
+ *   Full Content:  text → claim extraction → claim review → explicit confirmation
+ *                  (lib/claims) → (Task 5+) verification
  */
 import type { CheckMode, InputType } from "@/lib/domain";
 
@@ -20,7 +21,7 @@ export interface ExtractionInputPayload {
 }
 
 /** The step each prepared submission is waiting for (none of them is verification). */
-export type NextStep = "claim_confirmation" | "claim_extraction";
+export type NextStep = "claim_confirmation";
 
 export type PreparedSubmission =
   | {
@@ -28,10 +29,4 @@ export type PreparedSubmission =
       preparedAt: string;
       extractionInput: ExtractionInputPayload;
       next: "claim_confirmation";
-    }
-  | {
-      kind: "full_content_text";
-      preparedAt: string;
-      extractionInput: ExtractionInputPayload;
-      next: "claim_extraction";
     };

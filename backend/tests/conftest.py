@@ -16,7 +16,14 @@ from app.domain.trusted_sources import Provider, TrustedSourceId
 @pytest.fixture(autouse=True)
 def _isolated_settings(monkeypatch):
     """Tests never read the developer's backend/.env."""
-    for var in ("DATABASE_URL", "LLM_PROVIDER", "VERIFICATION_MAX_RETRIES", "ANTHROPIC_API_KEY"):
+    for var in (
+        "DATABASE_URL",
+        "LLM_PROVIDER",
+        "VERIFICATION_MAX_RETRIES",
+        "GEMINI_API_KEY",
+        "GEMINI_MODEL",
+        "GEMINI_THINKING_LEVEL",
+    ):
         monkeypatch.delenv(var, raising=False)
     get_settings.cache_clear()
     from app.config import Settings

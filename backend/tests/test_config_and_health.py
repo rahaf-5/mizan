@@ -26,12 +26,13 @@ def test_env_overrides_and_blank_values(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "")
     s = Settings()
     assert s.verification_max_retries == 4
-    assert s.anthropic_api_key is None
+    assert s.gemini_api_key is None
 
 
 def test_llm_provider_none_by_default():
     assert build_llm_provider(Settings()) is None
-    assert build_llm_provider(Settings(llm_provider="fake")).name == "fake"
+    p = build_llm_provider(Settings(llm_provider="gemini", gemini_api_key="k" * 39))
+    assert p is not None and p.name == "gemini" and p.is_configured()
 
 
 def test_live_endpoint():
@@ -57,8 +58,8 @@ def test_health_unreachable_database_and_no_secret_leak():
     s = Settings(
         database_url=f"postgresql+psycopg://u:{secret}@127.0.0.1:1/db",
         database_connect_timeout_seconds=1,
-        anthropic_api_key="sk-test-secret",
-        llm_provider="anthropic",
+        gemini_api_key="sk-test-secret",
+        llm_provider="gemini",
     )
     r = client_with(s).get("/api/v1/health")
     assert r.json()["database"]["status"] == "unavailable"

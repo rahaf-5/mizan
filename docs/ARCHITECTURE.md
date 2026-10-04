@@ -32,6 +32,30 @@ has `input_type = text` and forbids extra fields. Image input / OCR was removed 
 or setting is part of the MVP; the previous implementation is preserved only in Git history
 (commits `0eea5da` → `f08cf42`).
 
+## Claim Extraction & Claim Review (Task 4)
+
+```
+Full Content text ─▶ POST /api/v1/claims/extract ─▶ LlmClaimExtractor ─▶ LLMProvider (Gemini adapter)
+   ◀─ pending claims (grounded, validated) ─ Claim Review UI (edit / delete / (de)select / add)
+   ─▶ explicit click ─▶ POST /api/v1/claims/confirm ─▶ domain gate select_confirmed_claims()
+   ─▶ ConfirmedClaim[] (next_stage = claim_classification; verification_started = false)
+```
+
+- `app/pipeline/claim_extraction.py` implements the `ClaimExtractor` contract with ANY
+  `LLMProvider`. It wraps the content as untrusted data (random per-request boundary), strictly
+  validates `ClaimExtractionDraft`, drops claims whose `source_excerpt` is not found in the content
+  (Arabic-normalised match, matching only), de-duplicates, and returns claims in `pending` status.
+- `app/llm/gemini.py` is the only Gemini-specific code (REST `generateContent`, header auth,
+  `responseFormat.text` JSON schema, `thinkingConfig.thinkingLevel`). Nothing outside `app/llm`
+  imports it; selection happens in `app/llm/factory.py` from settings.
+- LLM output types (`app/llm/schemas.py`) cannot carry evidence, citations, references (other than
+  text the user wrote), gradings or verdicts (tests in `test_llm_contracts.py`).
+- Failures (`llm_not_configured`, `llm_auth_failed`, `llm_rate_limited`, `llm_timeout`,
+  `llm_invalid_response`, `llm_content_blocked`, `llm_provider_error`) are system errors — never
+  "no claims found". A successful extraction with zero claims is a separate, explicit result.
+- Confirmation: the edited text (not the extracted text) becomes `confirmed_claim_text`
+  (`edited` status); deselected/deleted claims are excluded; manual claims use the same gate.
+
 ## Per-claim outcomes
 
 A claim ends in exactly one of three structurally separate outcomes (`domain/results.py`):
@@ -79,6 +103,10 @@ orchestrator — not a domain rule.
    Task 3 closed as "removed from MVP scope". If OCR returns in a future version, OCR output must
    be reviewed by the user before Claim Extraction (spec §16) and OCR confidence must never affect
    verification status or Evidence Strength.
+
+5. **LLM provider (2026-10-04).** Gemini Developer API is the current MVP adapter
+   (`gemini-3.5-flash-lite`); the provider abstraction remains authoritative. Anthropic is not
+   wired. LLM extraction is not religious verification; user confirmation is mandatory.
 
 ## Open decisions
 

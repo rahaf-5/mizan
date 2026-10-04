@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from app.config import Settings, get_settings
 from app.db.session import check_database
+from app.llm.factory import build_llm_provider
 from app.sources.registry import build_default_registry
 
 router = APIRouter(prefix="/health", tags=["health"])
@@ -53,9 +54,18 @@ async def health(settings: Annotated[Settings, Depends(get_settings)]) -> Health
         environment=settings.app_env,
         config_loaded=True,
         database=ComponentStatus(status=db_status, detail=db_detail),
-        llm_provider=ComponentStatus(
-            status="not_configured" if settings.llm_provider == "none" else "configured",
-            detail=settings.llm_provider,
-        ),
+        llm_provider=_llm_status(settings),
         trusted_sources=sources,
     )
+
+
+def _llm_status(settings: Settings) -> ComponentStatus:
+    provider = build_llm_provider(settings)
+    if provider is None:
+        return ComponentStatus(status="not_configured", detail="none")
+    label = f"{provider.name} ({getattr(provider, 'model', '')})".replace(" ()", "")
+    if provider.is_configured():
+        return ComponentStatus(status="configured", detail=label)
+    problem = provider.config_problem or ""
+    status = "missing_credentials" if problem.endswith("is not set") else "invalid_credentials"
+    return ComponentStatus(status=status, detail=f"{label}: {problem}")

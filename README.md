@@ -5,9 +5,10 @@ The approved product specification (`MIZAN_PRODUCT_SPEC.md`, in the Mizan projec
 
 > **Claim First. Evidence Second. Judgment Last.** — الادعاء أولًا، الدليل ثانيًا، والنتيجة أخيرًا.
 
-**Status:** Tasks 1–2 done; Task 3 (image OCR) **removed from MVP scope** (2026-10-04).
-Full Content Check is **text only**. Inputs are validated and prepared for Claim Extraction
-(Task 4); no claim extraction or verification runs yet.
+**Status:** Tasks 1–2 done; Task 3 (image OCR) removed from MVP scope; **Task 4 (Claim Extraction +
+Claim Review) implemented**. Full Content text → LLM-assisted claim extraction → Claim Review →
+explicit confirmation → confirmed claims prepared for the future verification pipeline. No
+verification, retrieval or verdicts yet.
 
 ## Repository layout
 
@@ -18,16 +19,17 @@ mizan/
 │   │   ├── domain/     Typed domain models & approved enums (source of truth)
 │   │   ├── pipeline/   Stage contracts, stubs, orchestrator skeleton
 │   │   ├── sources/    Trusted-source adapter contract, allowlist registry, placeholders
-│   │   ├── llm/        Provider abstraction (assistive only — never evidence)
+│   │   ├── llm/        Provider abstraction + Gemini adapter + prompts (assistive only — never evidence)
 │   │   ├── api/v1/     HTTP API (health only, for now)
 │   │   ├── db/         SQLAlchemy engine/session (no tables yet)
 │   │   └── config.py   Environment configuration
 │   ├── migrations/     Alembic (no revisions yet)
 │   └── tests/
 ├── frontend/           Next.js (App Router) + TypeScript + Tailwind, Arabic RTL
-│   ├── src/app/        routes: / · /quick-check · /full-content · /status
-│   ├── src/features/   quick-check/, full-content/ (text only)
+│   ├── src/app/        routes: / · /quick-check · /full-content · /full-content/claims · /status
+│   ├── src/features/   quick-check/, full-content/ (text only), claim-review/
 │   ├── src/lib/input/  typed input contracts, validation, in-memory input session
+│   ├── src/lib/claims/ claim extraction/review contracts, API client, review helpers
 │   ├── src/i18n/       centralized UI strings (ar)
 │   └── tests/          unit/, components/ (jsdom), integration/
 ├── contracts/          domain-contracts.json — shared enum snapshot (generated)
@@ -63,6 +65,26 @@ npm install
 cp .env.example .env.local
 npm run dev                        # http://localhost:3000
 ```
+
+## LLM provider (claim extraction)
+
+Gemini Developer API is the current MVP adapter behind the provider-neutral LLM abstraction
+(`backend/app/llm/`). In `backend/.env`:
+
+```
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=<your key — plain ASCII, no quotes or invisible characters>
+GEMINI_MODEL=gemini-3.5-flash-lite
+```
+
+Real-provider smoke test (sends only public sample sentences; never prints the key):
+
+```
+cd backend && python -m app.cli.smoke_claim_extraction
+```
+
+LLM extraction is not religious verification, and LLM output can never create evidence,
+citations or gradings. Users must confirm claims before any verification.
 
 ## Scope note: no image input / OCR in the MVP
 

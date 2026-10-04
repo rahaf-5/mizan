@@ -34,9 +34,13 @@ class Settings(BaseSettings):
     database_connect_timeout_seconds: int = Field(default=3, ge=1, le=60)
 
     # LLM (assistive only; never an evidence source)
-    llm_provider: Literal["none", "fake", "anthropic"] = "none"
-    llm_model: str | None = None
-    anthropic_api_key: SecretStr | None = None
+    #: Active LLM adapter behind the provider-neutral abstraction (app/llm/base.py).
+    llm_provider: Literal["none", "gemini"] = "none"
+    llm_request_timeout_seconds: int = Field(default=45, ge=1, le=180)
+    # Gemini Developer API (current MVP adapter). Key is backend-only.
+    gemini_api_key: SecretStr | None = None
+    gemini_model: str = "gemini-3.5-flash-lite"
+    gemini_thinking_level: Literal["", "minimal", "low", "medium", "high"] = "low"
 
     # Trusted sources (placeholders)
     quranpedia_enabled: bool = False
@@ -52,10 +56,9 @@ class Settings(BaseSettings):
 
     @field_validator(
         "database_url",
-        "anthropic_api_key",
+        "gemini_api_key",
         "quranpedia_api_key",
         "dorar_api_key",
-        "llm_model",
         "quranpedia_base_url",
         "dorar_base_url",
         mode="before",

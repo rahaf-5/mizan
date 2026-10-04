@@ -57,7 +57,40 @@ class SourceUnavailableError(MizanError):
 
 
 class LLMProviderError(MizanError):
+    """LLM provider/network problem (technical). Never an evidence verdict."""
+
     code = SystemErrorCode.LLM_PROVIDER_ERROR
+
+
+class LLMNotConfiguredError(LLMProviderError):
+    code = SystemErrorCode.LLM_NOT_CONFIGURED
+    retryable = False
+
+
+class LLMAuthError(LLMProviderError):
+    code = SystemErrorCode.LLM_AUTH_FAILED
+    retryable = False
+
+
+class LLMRateLimitedError(LLMProviderError):
+    code = SystemErrorCode.LLM_RATE_LIMITED
+
+
+class LLMTimeoutError(LLMProviderError):
+    code = SystemErrorCode.LLM_TIMEOUT
+
+
+class LLMInvalidResponseError(LLMProviderError):
+    """Model output was missing, malformed or failed strict validation."""
+
+    code = SystemErrorCode.LLM_INVALID_RESPONSE
+
+
+class LLMContentBlockedError(LLMProviderError):
+    """Provider refused to process the content (e.g. safety filter)."""
+
+    code = SystemErrorCode.LLM_CONTENT_BLOCKED
+    retryable = False
 
 
 # --- Policy violations (programming errors, not user-facing outcomes) -------
