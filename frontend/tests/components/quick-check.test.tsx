@@ -13,7 +13,7 @@ const SINGLE = "قراءة سورة الكهف يوم الجمعة سبب في �
 
 function SessionProbe() {
   const { state } = useInputSession();
-  return <div data-testid="probe">{JSON.stringify({ prepared: state.prepared, content: state.contentText, mode: state.contentMode })}</div>;
+  return <div data-testid="probe">{JSON.stringify({ prepared: state.prepared, content: state.contentText })}</div>;
 }
 const probe = () => JSON.parse(screen.getByTestId("probe").textContent || "{}");
 
@@ -82,7 +82,6 @@ describe("Quick Check", () => {
       mode: "quick_check",
       input_type: "text",
       text: typed,
-      ocr_text_reviewed_by_user: false,
     });
     expect(screen.getByRole("status")).toHaveTextContent("تم تجهيز الادعاء للمراجعة والتأكيد");
     expect(screen.getByRole("status")).toHaveTextContent("لم يبدأ أي تحقق بعد");
@@ -111,7 +110,6 @@ describe("Quick Check", () => {
     await user.click(screen.getByRole("button", { name: /الانتقال إلى فحص محتوى كامل/ }));
     expect(push).toHaveBeenCalledWith("/full-content");
     expect(probe().content).toBe(`${SINGLE}\nصيام يوم عرفة يكفّر ذنوب سنتين.`);
-    expect(probe().mode).toBe("text");
   });
 
   it("lets the user continue as a single claim", async () => {

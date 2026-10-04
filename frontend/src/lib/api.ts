@@ -14,7 +14,6 @@ export interface HealthReport {
   config_loaded: boolean;
   database: ComponentStatus;
   llm_provider: ComponentStatus;
-  ocr: ComponentStatus;
   trusted_sources: Record<string, ComponentStatus>;
 }
 

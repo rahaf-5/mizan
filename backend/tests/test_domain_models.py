@@ -140,29 +140,25 @@ def test_provided_reference_kept_separate_from_verified_reference():
     assert c.verified_reference is None
 
 
-# --- Input / OCR rule -------------------------------------------------------
+# --- Input: text only (image/OCR out of MVP scope) ---------------------------
 
 
-def test_unreviewed_ocr_text_cannot_enter_extraction():
+@pytest.mark.parametrize("mode", [CheckMode.QUICK_CHECK, CheckMode.FULL_CONTENT])
+def test_extraction_input_is_text_only(mode):
+    ok = ExtractionInput(mode=mode, text="نص")
+    assert ok.input_type == InputType.TEXT
     with pytest.raises(ValidationError):
-        ExtractionInput(mode=CheckMode.FULL_CONTENT, input_type=InputType.IMAGE, text="نص")
-    ok = ExtractionInput(
-        mode=CheckMode.FULL_CONTENT,
-        input_type=InputType.IMAGE,
-        text="نص",
-        ocr_text_reviewed_by_user=True,
-    )
-    assert ok.ocr_text_reviewed_by_user
+        ExtractionInput(mode=mode, input_type="image", text="نص")
 
 
-def test_quick_check_is_text_only():
+def test_extraction_input_rejects_ocr_fields():
     with pytest.raises(ValidationError):
-        ExtractionInput(
-            mode=CheckMode.QUICK_CHECK,
-            input_type=InputType.IMAGE,
-            text="نص",
-            ocr_text_reviewed_by_user=True,
-        )
+        ExtractionInput(mode=CheckMode.FULL_CONTENT, text="نص", ocr_text_reviewed_by_user=True)
+
+
+def test_extraction_input_requires_text():
+    with pytest.raises(ValidationError):
+        ExtractionInput(mode=CheckMode.FULL_CONTENT, text="")
 
 
 # --- Evidence schema ---------------------------------------------------------

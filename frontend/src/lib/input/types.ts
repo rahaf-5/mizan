@@ -1,18 +1,15 @@
 /**
- * Typed input-stage contracts (Task 2).
+ * Typed input-stage contracts.
  *
  * These describe what the user prepared on the input screens. They reuse the
- * Task 1 domain contracts (CheckMode, InputType, ExtractionInput) and do not
- * redefine any verification concept. Nothing here triggers verification.
+ * domain contracts (CheckMode, InputType, ExtractionInput) and do not redefine
+ * any verification concept. Nothing here triggers verification.
  *
- * Approved flow:
+ * MVP flow (text only — image input/OCR is out of MVP scope):
  *   Quick Check:   claim text → (Task 4) review/confirm → verification
- *   Full (text):   text → (Task 4) claim extraction → claim review → verification
- *   Full (image):  image → OCR → review extracted text (user edits/confirms)
- *                  → (Task 4) claim extraction → claim review → verification
+ *   Full Content:  text → (Task 4) claim extraction → claim review → verification
  */
 import type { CheckMode, InputType } from "@/lib/domain";
-import type { OcrExtraction } from "@/lib/ocr/types";
 
 /** Mirrors backend `ExtractionInput` (backend/app/domain/inputs.py). */
 export interface ExtractionInputPayload {
@@ -20,35 +17,10 @@ export interface ExtractionInputPayload {
   input_type: InputType;
   /** Exactly as the user entered it — never rewritten or "corrected". */
   text: string;
-  /** Only meaningful for image input after OCR review (Task 3). */
-  ocr_text_reviewed_by_user: boolean;
 }
-
-export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png"] as const;
-export type AcceptedImageType = (typeof ACCEPTED_IMAGE_TYPES)[number];
-export const ACCEPTED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png"] as const;
-
-export interface ImageSelection {
-  file: File;
-  name: string;
-  type: AcceptedImageType;
-  sizeBytes: number;
-}
-
-export type ContentMode = Extract<InputType, "text" | "image">;
 
 /** The step each prepared submission is waiting for (none of them is verification). */
 export type NextStep = "claim_confirmation" | "claim_extraction";
-
-/**
- * OCR session for the image flow. Keeps the three stages separate:
- * original image → raw OCR output (never modified) → user-reviewed text.
- */
-export interface OcrSession {
-  image: ImageSelection;
-  extraction: OcrExtraction;
-  reviewedText: string;
-}
 
 export type PreparedSubmission =
   | {
@@ -61,16 +33,5 @@ export type PreparedSubmission =
       kind: "full_content_text";
       preparedAt: string;
       extractionInput: ExtractionInputPayload;
-      next: "claim_extraction";
-    }
-  | {
-      /**
-       * User-reviewed OCR text. ONLY this (never raw OCR output) may enter
-       * Claim Extraction; `ocr_text_reviewed_by_user` is true by construction.
-       */
-      kind: "full_content_reviewed_ocr_text";
-      preparedAt: string;
-      extractionInput: ExtractionInputPayload & { input_type: "image"; ocr_text_reviewed_by_user: true };
-      ocr: { ocrId: string; provider: string; rawText: string; editedByUser: boolean };
       next: "claim_extraction";
     };

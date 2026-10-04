@@ -30,7 +30,8 @@ describe("Home", () => {
       "/full-content",
     );
     expect(links[0]).toHaveAccessibleName(/ادعاء ديني واحد/);
-    expect(links[1]).toHaveAccessibleName(/نص أو صورة، ثم مراجعة الادعاءات قبل التحقق/);
+    expect(links[1]).toHaveAccessibleName(/نص ديني، ثم مراجعة الادعاءات قبل التحقق/);
+    expect(document.body.textContent).not.toMatch(/صورة/);
   });
 
   it("has no statistics, dashboards or extra primary actions", () => {

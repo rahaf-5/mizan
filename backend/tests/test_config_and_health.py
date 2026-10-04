@@ -49,6 +49,7 @@ def test_health_without_database_is_degraded_and_reports_placeholders():
         "dorar_al_sunniyah": {"status": "disabled", "detail": None},
     }
     assert body["llm_provider"]["status"] == "not_configured"
+    assert "ocr" not in body  # image input / OCR is out of MVP scope
 
 
 def test_health_unreachable_database_and_no_secret_leak():
@@ -71,3 +72,25 @@ def test_cors_allows_frontend_origin():
         headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"},
     )
     assert r.headers.get("access-control-allow-origin") == "http://localhost:3000"
+
+
+def test_leftover_ocr_settings_are_ignored_and_never_exposed(monkeypatch):
+    """A stale GOOGLE_VISION_API_KEY / OCR_PROVIDER must not affect startup or health."""
+    secret = "AIza" + "z" * 35
+    monkeypatch.setenv("OCR_PROVIDER", "google_vision")
+    monkeypatch.setenv("GOOGLE_VISION_API_KEY", "\u200f" + secret)
+    get_settings.cache_clear()
+    s = Settings()
+    assert not hasattr(s, "google_vision_api_key") and not hasattr(s, "ocr_provider")
+    c = client_with(s)
+    r = c.get("/api/v1/health")
+    assert r.status_code == 200
+    assert "ocr" not in r.json() and secret not in r.text and "vision" not in r.text.lower()
+
+
+def test_no_ocr_endpoint_in_mvp():
+    c = client_with(Settings())
+    assert c.post("/api/v1/ocr").status_code == 404
+    assert c.get("/api/v1/ocr/limits").status_code == 404
+    paths = c.get("/openapi.json").json()["paths"]
+    assert not [p for p in paths if "ocr" in p]

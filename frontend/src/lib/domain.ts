@@ -64,6 +64,6 @@ export type TrustedSourceId = (typeof TRUSTED_SOURCE_IDS)[number];
 export const CHECK_MODES = ["quick_check", "full_content"] as const;
 export type CheckMode = (typeof CHECK_MODES)[number];
 
-/** Input types (backend InputType). */
-export const INPUT_TYPES = ["text", "image"] as const;
+/** Input types (backend InputType). MVP is text only — image/OCR is out of scope. */
+export const INPUT_TYPES = ["text"] as const;
 export type InputType = (typeof INPUT_TYPES)[number];

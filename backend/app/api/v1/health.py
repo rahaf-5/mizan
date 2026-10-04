@@ -10,7 +10,6 @@ from pydantic import BaseModel
 
 from app.config import Settings, get_settings
 from app.db.session import check_database
-from app.ocr.factory import build_ocr_provider
 from app.sources.registry import build_default_registry
 
 router = APIRouter(prefix="/health", tags=["health"])
@@ -29,7 +28,6 @@ class HealthReport(BaseModel):
     config_loaded: bool
     database: ComponentStatus
     llm_provider: ComponentStatus
-    ocr: ComponentStatus
     trusted_sources: dict[str, ComponentStatus]
 
 
@@ -47,8 +45,8 @@ async def health(settings: Annotated[Settings, Depends(get_settings)]) -> Health
         for a in registry.adapters()
     }
     return HealthReport(
-        # Only the database is required for "ok" at this stage; sources/LLM/OCR
-        # are expected to be unconnected during Task 1.
+        # Only the database is required for "ok" at this stage; sources/LLM
+        # are expected to be unconnected at this stage.
         status="ok" if db_status == "ok" else "degraded",
         app=settings.app_name,
         version=settings.app_version,
@@ -59,19 +57,5 @@ async def health(settings: Annotated[Settings, Depends(get_settings)]) -> Health
             status="not_configured" if settings.llm_provider == "none" else "configured",
             detail=settings.llm_provider,
         ),
-        ocr=_ocr_status(settings),
         trusted_sources=sources,
-    )
-
-
-def _ocr_status(settings: Settings) -> ComponentStatus:
-    provider = build_ocr_provider(settings)
-    if provider is None:
-        return ComponentStatus(status="not_configured", detail="none")
-    if provider.is_configured():
-        return ComponentStatus(status="configured", detail=provider.name)
-    problem = getattr(provider, "config_problem", None) or ""
-    status = "missing_credentials" if problem.endswith("is not set") else "invalid_credentials"
-    return ComponentStatus(
-        status=status, detail=f"{provider.name}: {problem}" if problem else provider.name
     )

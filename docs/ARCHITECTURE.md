@@ -24,22 +24,13 @@ User Input → Claim Extraction → User Review & Confirmation → Claim Classif
 `orchestrator.VerificationPipeline` wires the stages from Classification onwards. Extraction and
 confirmation are interactive (the user reviews claims in between), so they are driven by the API/UI.
 
-## Image input & OCR (Task 3)
+## Input (MVP: text only)
 
-```
-Image ─▶ backend /api/v1/ocr ─▶ OcrProvider (Google Vision) ─▶ OcrExtraction (raw_text, unmodified)
-      ─▶ Review Extracted Text (user edits) ─▶ reviewed text ─▶ ExtractionInput(ocr_text_reviewed_by_user=true) ─▶ Task 4
-```
-
-- `app/domain/ocr.py`: `OcrExtraction` (status `completed | completed_with_warnings | no_text_found`,
-  warnings, provider confidence only when exposed) vs `OcrFailure` (technical, `SystemErrorInfo`).
-  Input problems (type/size/unreadable) are `input_error` responses, not technical failures.
-- `app/ocr/`: `OcrProvider` contract, `GoogleVisionOcrProvider`, content validation (magic bytes +
-  Pillow decode + pixel cap), `OcrService` (status/warnings from facts only).
-- Frontend keeps original image → raw OCR (never mutated) → reviewed text separately
-  (`InputSessionState.ocr`). Only reviewed text becomes the Task 4 input.
-- OCR never extracts claims, verifies, generates evidence, or rewrites text. OCR errors are never a
-  `VerificationStatus`. OCR confidence is not shown as a number and is not verification confidence.
+Quick Check and Full Content Check accept text only. `ExtractionInput` (`app/domain/inputs.py`)
+has `input_type = text` and forbids extra fields. Image input / OCR was removed from the MVP on
+2026-10-04 (product-scope decision, not a technical failure). No OCR code, endpoint, dependency
+or setting is part of the MVP; the previous implementation is preserved only in Git history
+(commits `0eea5da` → `f08cf42`).
 
 ## Per-claim outcomes
 
@@ -84,11 +75,10 @@ orchestrator — not a domain rule.
 3. **Quranpedia / Dorar** remain unresolved integration requirements until addressed before
    Task 5 (no invented APIs, endpoints, keys, scraping, caching or indexing rights).
 
-4. **Task 3 locks.** Upload limit 7 MB JPG/PNG (from Google Vision's 10 MB request limit);
-   OCR provider Google Cloud Vision (default global endpoint) behind a provider-neutral contract;
-   privacy notice before image upload; low-confidence review threshold 0.6 is an OCR review signal
-   only and never affects verification status or Evidence Strength; in-memory drafts only;
-   multi-claim guidance stays a non-blocking heuristic.
+4. **Image input / OCR removed from MVP scope (2026-10-04).** Full Content Check is text only.
+   Task 3 closed as "removed from MVP scope". If OCR returns in a future version, OCR output must
+   be reviewed by the user before Claim Extraction (spec §16) and OCR confidence must never affect
+   verification status or Evidence Strength.
 
 ## Open decisions
 

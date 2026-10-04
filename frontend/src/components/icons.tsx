@@ -33,26 +33,6 @@ export const DocumentIcon = ({ className }: IconProps) => (
   </svg>
 );
 
-export const TextIcon = ({ className }: IconProps) => (
-  <svg {...base(className)}>
-    <path d="M4 6h16M4 12h16M10 18h10" />
-  </svg>
-);
-
-export const ImageIcon = ({ className }: IconProps) => (
-  <svg {...base(className)}>
-    <rect x="3" y="4" width="18" height="16" rx="2" />
-    <circle cx="9" cy="10" r="2" />
-    <path d="m21 16-5-5-9 9" />
-  </svg>
-);
-
-export const UploadIcon = ({ className }: IconProps) => (
-  <svg {...base(className)}>
-    <path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
-  </svg>
-);
-
 export const AlertIcon = ({ className }: IconProps) => (
   <svg {...base(className)}>
     <path d="M12 9v4M12 17h.01" />

@@ -90,7 +90,6 @@ export function BackendStatus() {
         <dl className="divide-y divide-[var(--color-border)]">
           <Row label={t.status.database} value={state.report.database} />
           <Row label={t.status.llmProvider} value={state.report.llm_provider} />
-          <Row label={t.status.ocr} value={state.report.ocr} />
           {Object.entries(state.report.trusted_sources).map(([name, value]) => (
             <Row key={name} label={`${t.status.trustedSources}: ${name}`} value={value} />
           ))}

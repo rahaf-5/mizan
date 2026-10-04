@@ -47,17 +47,6 @@ class Settings(BaseSettings):
     dorar_api_key: SecretStr | None = None
     source_request_timeout_seconds: int = Field(default=15, ge=1, le=120)
 
-    # OCR (Task 3) — called only from the backend; keys never reach the frontend.
-    ocr_provider: Literal["none", "google_vision"] = "none"
-    google_vision_api_key: SecretStr | None = None
-    ocr_request_timeout_seconds: int = Field(default=30, ge=1, le=120)
-    #: Words below this provider confidence are flagged for user review.
-    #: LOCKED (Task 3): 0.6. OCR review signal ONLY — must never affect
-    #: verification status or Evidence Strength (guarded by tests/test_ocr_isolation.py).
-    ocr_low_confidence_threshold: float = Field(default=0.6, ge=0, le=1)
-    #: Optional comma-separated Vision languageHints (empty = auto-detect).
-    ocr_language_hints: str = ""
-
     # Verification pipeline — implementation default, NOT a product rule.
     verification_max_retries: int = Field(default=2, ge=0, le=10)
 
@@ -66,7 +55,6 @@ class Settings(BaseSettings):
         "anthropic_api_key",
         "quranpedia_api_key",
         "dorar_api_key",
-        "google_vision_api_key",
         "llm_model",
         "quranpedia_base_url",
         "dorar_base_url",
@@ -75,10 +63,6 @@ class Settings(BaseSettings):
     @classmethod
     def _empty_to_none(cls, v):  # type: ignore[no-untyped-def]
         return None if isinstance(v, str) and not v.strip() else v
-
-    @property
-    def ocr_language_hint_list(self) -> list[str]:
-        return [h.strip() for h in self.ocr_language_hints.split(",") if h.strip()]
 
     @property
     def cors_origin_list(self) -> list[str]:

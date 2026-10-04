@@ -94,6 +94,16 @@ def test_evidence_strength_has_signals_only():
     ]
 
 
+def test_mvp_input_is_text_only():
+    from app.domain.enums import InputType
+
+    assert values(InputType) == ["text"]
+
+
+def test_no_ocr_error_codes_in_mvp():
+    assert not [c for c in values(SystemErrorCode) if c.startswith("ocr")]
+
+
 def test_four_result_groups():
     assert len(ResultGroup) == 4
 
