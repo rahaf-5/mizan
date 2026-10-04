@@ -13,7 +13,7 @@ from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.domain.enums import ClaimType, EvidenceRelationship, ExtractionStatus, ProvidedEvidenceType
+from app.domain.enums import ClaimType, ExtractionStatus, ProvidedEvidenceType
 
 
 class LLMTask(str, Enum):
@@ -109,18 +109,45 @@ class ClassificationSuggestion(LLMOutput):
 # --- Constrained evidence analysis -----------------------------------------
 
 
-class RelationshipSuggestion(LLMOutput):
-    """Suggestion about ONE evidence item that was given to the model (by id)."""
+class AnalysisRelation(str, Enum):
+    """LLM-side relation labels. `unrelated` items are dropped (never shown, never counted)."""
 
-    evidence_id: str
-    relationship: EvidenceRelationship
-    supported_part: str | None = None
-    unsupported_part: str | None = None
-    rationale: str = Field(min_length=1)
+    SUPPORTS = "supports"
+    PARTIALLY_SUPPORTS = "partially_supports"
+    CONTRADICTS = "contradicts"
+    INSUFFICIENT = "insufficient"
+    UNRELATED = "unrelated"
 
 
-class ConstrainedAnalysisDraft(LLMOutput):
-    suggestions: list[RelationshipSuggestion] = Field(default_factory=list)
+class ClaimComponentDraft(LLMOutput):
+    component_id: str = Field(description="Short id, e.g. c1.")
+    text: str = Field(
+        description="ONE assertion, copied VERBATIM as a contiguous span of the claim text."
+    )
+    claim_type: ClaimType = Field(description="tafsir or asbab_nuzul.")
+
+
+class EvidenceJudgementDraft(LLMOutput):
+    item: str = Field(description="Label of the source passage, e.g. E1.")
+    component_id: str
+    relation: AnalysisRelation
+    span: str | None = Field(
+        default=None,
+        description=(
+            "Exact words copied VERBATIM from that passage that the relation rests on. Required "
+            "for supports, partially_supports and contradicts."
+        ),
+    )
+    supported_part: str | None = Field(default=None, description="For partially_supports.")
+    unsupported_part: str | None = Field(default=None, description="For partially_supports.")
+    rationale: str = Field(min_length=1, description="One short sentence, based only on the span.")
+
+
+class EvidenceAnalysisDraft(LLMOutput):
+    """Constrained analysis of GIVEN passages against GIVEN claim components. Not evidence."""
+
+    components: list[ClaimComponentDraft] = Field(default_factory=list, max_length=5)
+    judgements: list[EvidenceJudgementDraft] = Field(default_factory=list, max_length=40)
 
 
 # --- Explanation generation -------------------------------------------------
@@ -138,6 +165,6 @@ class ExplanationDraft(LLMOutput):
 TASK_OUTPUT_SCHEMAS: dict[LLMTask, type[LLMOutput]] = {
     LLMTask.CLAIM_EXTRACTION: ClaimExtractionDraft,
     LLMTask.CLASSIFICATION_ASSISTANCE: ClassificationSuggestion,
-    LLMTask.CONSTRAINED_EVIDENCE_ANALYSIS: ConstrainedAnalysisDraft,
+    LLMTask.CONSTRAINED_EVIDENCE_ANALYSIS: EvidenceAnalysisDraft,
     LLMTask.EXPLANATION_GENERATION: ExplanationDraft,
 }

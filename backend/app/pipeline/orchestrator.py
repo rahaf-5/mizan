@@ -22,7 +22,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 
-from app.domain.claim import Claim, ClassifiedClaim, select_confirmed_claims
+from app.domain.claim import Claim, ClassifiedClaim, ConfirmedClaim, select_confirmed_claims
 from app.domain.enums import PipelineStage, SystemErrorCode, ValidationOutcome
 from app.domain.errors import MizanError, SystemErrorInfo
 from app.domain.results import (
@@ -67,6 +67,10 @@ class VerificationPipeline:
 
     async def run(self, claims: list[Claim]) -> FinalUserResult:
         confirmed = select_confirmed_claims(claims)  # raises if a selected claim is unconfirmed
+        return await self.run_confirmed(confirmed)
+
+    async def run_confirmed(self, confirmed: list[ConfirmedClaim]) -> FinalUserResult:
+        """Verify claims that already passed the confirmation gate (POST /api/v1/verify)."""
         outcomes: list[ClaimOutcome] = []
         for claim in confirmed:
             outcomes.append(await self._run_one_safely(claim))
@@ -102,8 +106,27 @@ class VerificationPipeline:
         retry_count = 0
         while True:
             retrieval = await self._s.retriever.retrieve(claim, plan, attempt=retry_count)
-            assessments = await self._s.verifier.verify(claim, retrieval.candidates)
-            analysis = await self._s.analyzer.analyze(claim, assessments)
+            if retrieval.has_failed_attempts:
+                # Technical failure of a required source: bounded retry, then fail closed.
+                # Never verified on partial data, never an evidentiary status.
+                if retry_count < self._max_retries:
+                    retry_count += 1
+                    continue
+                failed = next(a for a in retrieval.attempts if a.error is not None)
+                return SystemErrorOutcome(
+                    claim_id=claim.claim_id,
+                    error=SystemErrorInfo(
+                        code=SystemErrorCode.VERIFICATION_INCOMPLETE,
+                        stage=PipelineStage.HYBRID_RETRIEVAL,
+                        message=(
+                            f"approved source {failed.source.value} failed "
+                            f"({failed.error.code.value}); verification not completed"
+                        ),
+                        retryable=True,
+                    ),
+                )
+            findings = await self._s.verifier.verify(claim, retrieval.candidates)
+            analysis = await self._s.analyzer.analyze(claim, findings)
             determination = await self._s.status.determine(claim, analysis, retrieval)
             validation = await self._s.gate.validate(
                 claim,
@@ -125,7 +148,11 @@ class VerificationPipeline:
                     error=SystemErrorInfo(
                         code=SystemErrorCode.VERIFICATION_INCOMPLETE,
                         stage=PipelineStage.FINAL_VALIDATION_GATE,
-                        message="verification could not be completed within the retry limit",
+                        message=(
+                            "verification could not be completed within the retry limit ("
+                            + (validation.retry_reason.value if validation.retry_reason else "?")
+                            + ")"
+                        ),
                         retryable=True,
                     ),
                 )

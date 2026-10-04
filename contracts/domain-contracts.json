@@ -93,7 +93,9 @@
     "RetryReason": [
       "weak_retrieval",
       "missing_retrievable_metadata",
-      "retrieval_strategy_not_attempted"
+      "retrieval_strategy_not_attempted",
+      "technical_failure",
+      "integrity_failure"
     ],
     "OutOfScopeReason": [
       "unsupported_claim_category",

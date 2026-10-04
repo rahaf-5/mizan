@@ -15,10 +15,10 @@ User Input → Claim Extraction → User Review & Confirmation → Claim Classif
 | Claim Classification | `ClaimClassifier` | `ConfirmedClaim` → `ClassifiedClaim \| OutOfScopeOutcome` | Task 5a (`pipeline/classification.py`, Gemini + hadith-marker rule; ayah hints only) |
 | Source Routing | `SourceRouter` | `ClassifiedClaim` → `SourceRoutingPlan \| OutOfScopeOutcome \| RequiredSourceUnavailableOutcome` | Task 5a (`pipeline/routing.py`, deterministic) |
 | Hybrid Retrieval | `HybridRetriever` | → `RetrievalResult` (candidates + attempts + anchors) | Task 5a (`pipeline/retrieval.py`; `sources/quranpedia.py`, `sources/quran_index.py`) |
-| Evidence Verification | `EvidenceVerifier` | → `EvidenceAssessment[]` | Task 6 |
-| Evidence Analysis | `EvidenceAnalyzer` | → `AnalysisResult` | Task 6 |
-| Verification Status | `StatusDeterminer` | → `StatusDetermination` (1 of 6) | Task 6 |
-| Final Validation Gate | `FinalValidationGate` | → `FinalValidationResult` (pass/retry/abstain) | Task 6 |
+| Evidence Verification | `EvidenceVerifier` | → `VerificationFindings` (components + assessments) | Task 5b (`pipeline/verification.py`, `quran_checks.py`, `passage_analysis.py`) |
+| Evidence Analysis | `EvidenceAnalyzer` | `VerificationFindings` → `AnalysisResult` | Task 5b (`pipeline/analysis.py`, deterministic) |
+| Verification Status | `StatusDeterminer` | → `StatusDetermination` (1 of 6) | Task 5b (deterministic rule table) |
+| Final Validation Gate | `FinalValidationGate` | → `FinalValidationResult` (pass/retry/abstain) | Task 5b (`pipeline/gate.py`) |
 | Final User Result | `ResultBuilder` | → `ClaimOutcome` | Task 7 |
 
 `orchestrator.VerificationPipeline` wires the stages from Classification onwards. Extraction and
@@ -133,3 +133,24 @@ orchestrator — not a domain rule.
 - **Traceability:** every `Evidence` has `source_address` (official address), optional
   provider `source_record_id` (only when the provider has one), `retrieval_channel`,
   `source_version` (dumps), `retrieved_at`, `text_sha256` (validated) and `text_transform`.
+
+
+## Task 5b — Verification Engine (2026-10-04)
+
+- **Components:** the claim is split into verbatim components. Quran components (quote,
+  location, reference assertion) are verified deterministically against Mushaf 1; tafsir/asbab
+  components by ONE validated Gemini analysis per claim over max 3 passages per source.
+- **LLM validation (fail closed):** components must be verbatim claim spans; supports /
+  partially_supports / contradicts need a verbatim span (>= 3 words) occurring in that passage;
+  `unrelated` and cross-boundary judgements are dropped; an invalid analysis is re-requested once,
+  then `system_error(verification_incomplete)`.
+- **Keyword-only candidates** are never judged or counted (related/unverified addresses only).
+- **Rules:** component (conflicting > contradicted > supported > partial > insufficient >
+  not established); claim status (conflicting_evidence > contradicted > all supported >
+  partially_supported > insufficient_evidence > no_evidence_found).
+- **Gate:** seven checks recomputed deterministically. Integrity failures → RETRY
+  (`integrity_failure`); source failures → RETRY (`technical_failure`); when retries are exhausted
+  the claim ends as `system_error(verification_incomplete)` — never an evidentiary status.
+  ABSTAIN only for a correctly completed, evidentially weak verification (same status).
+- **API:** `POST /api/v1/verify` (confirmed claims in, `FinalUserResult` out; system-error
+  messages generic). Real smoke: `python -m app.cli.smoke_verification`.

@@ -417,7 +417,16 @@ def test_composite_plan():
 
 
 def _assessment(eid="ev-q-1", rel=EvidenceRelationship.SUPPORTS, **kw):
+    if rel != EvidenceRelationship.INSUFFICIENT:
+        kw.setdefault("evidence_span", "نص تجريبي")
     return EvidenceAssessment(evidence_id=eid, relationship=rel, rationale="مبني على الدليل", **kw)
+
+
+def test_non_insufficient_relationship_requires_verbatim_span():
+    with pytest.raises(ValidationError):
+        EvidenceAssessment(
+            evidence_id="e", relationship=EvidenceRelationship.SUPPORTS, rationale="r"
+        )
 
 
 def test_partial_support_requires_both_parts():

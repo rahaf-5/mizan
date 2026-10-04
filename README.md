@@ -89,6 +89,7 @@ retrieval smoke test (Gemini + official Quranpedia; no verdicts):
     cd backend && source .venv/bin/activate
     python -m app.cli.sync_quran_dump
     python -m app.cli.smoke_retrieval
+    python -m app.cli.smoke_verification   # Task 5b: full verification (no UI)
 
 If Gemini rejects requests, run the feature-isolation diagnostic (short public sentence only,
 never prints the key): `cd backend && python -m app.cli.diagnose_gemini`.

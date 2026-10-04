@@ -271,6 +271,14 @@ class QuranIndex:
             return None
         return [self._by_loc[(surah, n)] for n in range(start, end + 1)]
 
+    def match_surah_name(self, tokens: list[str], start: int) -> tuple[int, int] | None:
+        """(surah number, next token index) if normalised tokens at `start` name a surah."""
+        for width in (3, 2, 1):
+            name = " ".join(tokens[start : start + width])
+            if len(tokens[start : start + width]) == width and name in self._name_lookup:
+                return self._name_lookup[name], start + width
+        return None
+
     # ------------------------------------------------------------ resolution
 
     def validate_hint(self, hint: AyahRetrievalHint) -> list[QuranAyah] | None:

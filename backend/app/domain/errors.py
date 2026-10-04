@@ -56,6 +56,13 @@ class SourceUnavailableError(MizanError):
     code = SystemErrorCode.SOURCE_UNAVAILABLE
 
 
+class VerificationIntegrityError(MizanError):
+    """Verification could not be completed trustworthily (fail closed; never a verdict)."""
+
+    code = SystemErrorCode.VERIFICATION_INCOMPLETE
+    retryable = False
+
+
 class LLMProviderError(MizanError):
     """LLM provider/network problem (technical). Never an evidence verdict."""
 

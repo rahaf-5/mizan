@@ -21,7 +21,7 @@ from app.domain.results import ClaimOutcome, OutOfScopeOutcome, RequiredSourceUn
 from app.domain.retrieval import CandidateEvidence, RetrievalResult
 from app.domain.routing import SourceRoutingPlan
 from app.domain.validation import FinalValidationResult
-from app.domain.verification import AnalysisResult, EvidenceAssessment, StatusDetermination
+from app.domain.verification import AnalysisResult, StatusDetermination, VerificationFindings
 
 
 class ClaimExtractionResult(BaseModel):
@@ -72,11 +72,11 @@ class HybridRetriever(Protocol):
 
 @runtime_checkable
 class EvidenceVerifier(Protocol):
-    """Assess each candidate independently against confirmed_claim_text."""
+    """Assess each qualified candidate independently against verbatim claim components."""
 
     async def verify(
         self, claim: ClassifiedClaim, candidates: list[CandidateEvidence]
-    ) -> list[EvidenceAssessment]: ...
+    ) -> VerificationFindings: ...
 
 
 @runtime_checkable
@@ -84,7 +84,7 @@ class EvidenceAnalyzer(Protocol):
     """Compare assessments into a structured analysis_result. Creates no evidence."""
 
     async def analyze(
-        self, claim: ClassifiedClaim, assessments: list[EvidenceAssessment]
+        self, claim: ClassifiedClaim, findings: VerificationFindings
     ) -> AnalysisResult: ...
 
 

@@ -217,6 +217,38 @@ class RetryReason(_StrEnum):
     WEAK_RETRIEVAL = "weak_retrieval"
     MISSING_RETRIEVABLE_METADATA = "missing_retrievable_metadata"
     RETRIEVAL_STRATEGY_NOT_ATTEMPTED = "retrieval_strategy_not_attempted"
+    #: A required approved source failed for a technical reason. If it persists after the
+    #: bounded retries the claim ends as system_error(verification_incomplete) — NEVER as an
+    #: evidentiary status (approved 2026-10-04).
+    TECHNICAL_FAILURE = "technical_failure"
+    #: The gate found a verification-integrity problem (traceability, fingerprint, source
+    #: qualification, span, status recomputation, ...). Fail closed after bounded retries.
+    INTEGRITY_FAILURE = "integrity_failure"
+
+
+class ComponentKind(_StrEnum):
+    """What a claim component asserts (internal; not a status)."""
+
+    #: Quoted Quran wording (verified deterministically against Mushaf 1).
+    QURAN_QUOTE = "quran_quote"
+    #: Stated surah / ayah location (verified deterministically against Mushaf 1).
+    QURAN_LOCATION = "quran_location"
+    #: An assertion about a referenced ayah that the Quran text cannot establish (e.g. a name).
+    QURAN_REFERENCE_ASSERTION = "quran_reference_assertion"
+    #: A tafsir / asbab assertion (analysed with Gemini against retrieved passages).
+    STATEMENT = "statement"
+
+
+class ComponentOutcome(_StrEnum):
+    """Deterministic per-component result (internal; the claim status is derived from these)."""
+
+    SUPPORTED = "supported"
+    PARTIALLY_SUPPORTED = "partially_supported"
+    CONTRADICTED = "contradicted"
+    CONFLICTING = "conflicting"
+    INSUFFICIENT = "insufficient"
+    #: No qualified evidence for this component after completed retrieval.
+    NOT_ESTABLISHED = "not_established"
 
 
 # --- Processing outcomes that are NOT verification statuses ------------------
