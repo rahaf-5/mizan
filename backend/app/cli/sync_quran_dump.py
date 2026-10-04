@@ -48,6 +48,41 @@ class SyncError(RuntimeError):
     pass
 
 
+def describe_mismatch(
+    manifest: dict, entry: dict, raw: bytes, actual: str, headers: dict, final_url: str
+) -> str:
+    """Diagnostics only (nothing is installed): why the served file differs from the manifest."""
+    embedded = None
+    is_gzip = raw[:2] == b"\x1f\x8b"
+    if is_gzip:
+        try:
+            lic = json.loads(gzip.decompress(raw)).get("license") or {}
+            embedded = lic.get("version")
+        except (OSError, ValueError, AttributeError):
+            embedded = "<unreadable>"
+    lines = [
+        f"  manifest: version={manifest.get('version')} "
+        f"generated_at={manifest.get('generated_at')}",
+        f"  manifest entry: bytes={entry.get('bytes')} built_at={entry.get('built_at')} "
+        f"sha256={entry.get('sha256')}",
+        f"  served file: url={final_url} bytes={len(raw)} sha256={actual} "
+        f"gzip_magic={is_gzip} embedded_version={embedded}",
+        f"  served headers: {headers}",
+    ]
+    if (
+        embedded
+        and embedded not in ("<unreadable>",)
+        and str(embedded) > str((entry.get("built_at") or manifest.get("version") or "")[:10])
+    ):
+        lines.append(
+            "  diagnosis: the served dump is NEWER than the manifest entry (stale official "
+            "manifest). Integrity cannot be verified against the manifest; not installed."
+        )
+    elif headers.get("content-encoding"):
+        lines.append("  diagnosis: transfer encoding present; bytes compared as served.")
+    return "\n".join(lines)
+
+
 def _atomic_write(path: Path, data: bytes) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_bytes(data)
@@ -79,16 +114,30 @@ async def sync_quran_dump(
             raise SyncError(f"{DUMP_FILE} is not listed in the official manifest")
 
         manifest, entry = await manifest_entry()
-        r = await client.get(f"{DUMPS_BASE}/{DUMP_FILE}")
-        if r.status_code != 200:
-            raise SyncError(f"{DUMP_FILE}: HTTP {r.status_code}")
-        raw = r.content
+        # Read the exact bytes served (iter_raw: no transparent Content-Encoding decoding),
+        # so the checksum is computed over the same file the manifest describes.
+        async with client.stream("GET", f"{DUMPS_BASE}/{DUMP_FILE}") as r:
+            if r.status_code != 200:
+                raise SyncError(f"{DUMP_FILE}: HTTP {r.status_code}")
+            raw = b"".join([chunk async for chunk in r.aiter_raw()])
+            headers = {
+                k: r.headers.get(k)
+                for k in (
+                    "content-type",
+                    "content-encoding",
+                    "content-length",
+                    "last-modified",
+                    "etag",
+                )
+            }
+            final_url = str(r.url)
         actual = hashlib.sha256(raw).hexdigest()
         if actual != entry.get("sha256"):
             manifest, entry = await manifest_entry()  # manifest may have been rebuilt
             if actual != entry.get("sha256"):
                 raise SyncError(
-                    f"{DUMP_FILE} SHA-256 does not match the official manifest; not installed"
+                    f"{DUMP_FILE} SHA-256 does not match the official manifest; not installed.\n"
+                    + describe_mismatch(manifest, entry, raw, actual, headers, final_url)
                 )
         payload = json.loads(gzip.decompress(raw))
         license_block = payload.get("license") if isinstance(payload, dict) else None

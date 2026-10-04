@@ -50,7 +50,7 @@ def transport(*, sha=SHA, truncated=False, rows=None, seen=None):
                 200, json={"version": "2026-10-02", "files": [{"name": DUMP_FILE, "sha256": sha}]}
             )
         if r.url.path == f"/dumps/{DUMP_FILE}":
-            return httpx.Response(200, content=RAW)
+            return httpx.Response(200, stream=httpx.ByteStream(RAW))
         if r.url.path == "/v1/changes":
             assert r.url.params["since"] == "2026-10-02"
             return httpx.Response(
@@ -101,3 +101,50 @@ async def test_no_corrections_keeps_plain_dump_version(tmp_path):
         data_dir=tmp_path, transport=transport(rows=[]), out=lambda _: None
     )
     assert meta["source_version"] == "2026-10-02" and meta["changes_applied"] == 0
+
+
+async def test_stale_manifest_is_diagnosed_and_nothing_installed(tmp_path):
+    newer = dict(FULL, license={"version": "2026-10-03"})
+    raw_newer = gzip.compress(json.dumps(newer, ensure_ascii=False).encode())
+
+    def handler(r: httpx.Request) -> httpx.Response:
+        if r.url.path == "/dumps/manifest.json":
+            return httpx.Response(
+                200,
+                json={
+                    "version": "2026-10-02",
+                    "generated_at": "2026-10-02T03:32:23+00:00",
+                    "files": [
+                        {
+                            "name": DUMP_FILE,
+                            "sha256": SHA,
+                            "bytes": len(RAW),
+                            "built_at": "2026-10-02T03:31:37+00:00",
+                        }
+                    ],
+                },
+            )
+        return httpx.Response(200, stream=httpx.ByteStream(raw_newer))
+
+    with pytest.raises(SyncError) as e:
+        await sync_quran_dump(
+            data_dir=tmp_path, transport=httpx.MockTransport(handler), out=lambda _: None
+        )
+    msg = str(e.value)
+    assert "embedded_version=2026-10-03" in msg and "stale official manifest" in msg
+    assert not (tmp_path / DUMP_FILE).exists() and not (tmp_path / META_FILE).exists()
+
+
+async def test_checksum_is_computed_over_served_bytes_not_transparently_decoded(tmp_path):
+    def handler(r: httpx.Request) -> httpx.Response:
+        if r.url.path == f"/dumps/{DUMP_FILE}":
+            # A server that labels the .gz with Content-Encoding: gzip must not change the hash.
+            return httpx.Response(
+                200, stream=httpx.ByteStream(RAW), headers={"content-encoding": "gzip"}
+            )
+        return transport(rows=[]).handler(r)
+
+    meta = await sync_quran_dump(
+        data_dir=tmp_path, transport=httpx.MockTransport(handler), out=lambda _: None
+    )
+    assert meta["sha256"] == SHA
