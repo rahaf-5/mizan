@@ -108,3 +108,34 @@ async def test_runner_reports_failures_without_crashing():
     code = await run_validation(transport=httpx.MockTransport(handler), delay=0, out=lines.append)
     assert code == 1
     assert any("HTTP 429" in line for line in lines)
+
+
+async def test_dump_inspection_checks_sha_and_reports_missing_passage_ids():
+    import gzip
+    import hashlib
+
+    from app.cli.validate_sources import DUMP_FILES, run_dump_inspection
+
+    body = gzip.compress(json.dumps(TAFSIR, ensure_ascii=False).encode())
+    manifest = {
+        "version": "v",
+        "license": {"attribution": "x"},
+        "files": [{"name": n, "sha256": hashlib.sha256(body).hexdigest()} for n in DUMP_FILES],
+    }
+    hosts: set[str] = set()
+
+    def handler(r: httpx.Request) -> httpx.Response:
+        hosts.add(r.url.host)
+        if r.url.path.endswith("manifest.json"):
+            return httpx.Response(200, json=manifest)
+        if r.url.path.endswith("/changes"):
+            return httpx.Response(200, json={"changes": {"ayah_book_contents": {"rows": []}}})
+        return httpx.Response(200, content=body)
+
+    lines: list[str] = []
+    code = await run_dump_inspection(transport=httpx.MockTransport(handler), out=lines.append)
+    text = "\n".join(lines)
+    assert code == 0
+    assert hosts == {"quranpedia.net", "api.quranpedia.net"}
+    assert "sha256 matches manifest: True" in text
+    assert "content item id-like keys: NONE" in text

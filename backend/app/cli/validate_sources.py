@@ -1,6 +1,10 @@
 """Live SOURCE INTEGRATION VALIDATION — official Quranpedia API + official Dorar API.
 
     cd backend && source .venv/bin/activate && python -m app.cli.validate_sources
+    cd backend && source .venv/bin/activate && python -m app.cli.validate_sources --dumps
+
+`--dumps` downloads a few OFFICIAL Quranpedia dump files (manifest-listed, SHA-256
+checked, held in memory only, nothing written) and prints their record structure.
 
 Read-only research tool (pre-Task 5). It sends a small, FIXED list of public
 requests (well-known ayahs / one well-known hadith phrase) to the two official
@@ -290,7 +294,141 @@ async def run_validation(
     return 0 if failures == 0 else 1
 
 
+# ---------------------------------------------------------------- official dumps
+
+DUMPS_BASE = "https://quranpedia.net/dumps"
+#: Official dump files inspected for record identity (~22 MB total, in memory only).
+DUMP_FILES: tuple[str, ...] = (
+    "asbab-book-2919.json.gz",
+    "asbab-book-460.json.gz",
+    "tafsir-book-32.json.gz",
+    "tafsir-book-2012.json.gz",
+    "tafsir-book-136.json.gz",
+    "tafsir-book-331.json.gz",
+    "surahs.json.gz",
+    "books.json.gz",
+)
+
+
+def _first_records(payload: Any) -> tuple[str, list[Any]]:
+    """Locate the list of records in a dump (shape is not documented field-by-field)."""
+    if isinstance(payload, list):
+        return "<root list>", payload
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            if isinstance(value, list) and value and isinstance(value[0], dict):
+                return key, value
+        for key, value in payload.items():
+            if isinstance(value, dict):
+                inner_key, inner = _first_records(value)
+                if inner:
+                    return f"{key}.{inner_key}", inner
+    return "<none>", []
+
+
+def _walk_dicts(node: Any):
+    if isinstance(node, dict):
+        yield node
+        for v in node.values():
+            yield from _walk_dicts(v)
+    elif isinstance(node, list):
+        for v in node:
+            yield from _walk_dicts(v)
+
+
+def analyse_dump(name: str, payload: Any) -> list[str]:
+    notes = [f"top-level: {json.dumps(describe(payload, max_depth=2), ensure_ascii=False)[:1500]}"]
+    key, records = _first_records(payload)
+    notes.append(f"record list at: {key} ({len(records)} records)")
+    if records:
+        notes.append(
+            "first record: "
+            + json.dumps(describe(records[0], max_depth=3), ensure_ascii=False)[:1500]
+        )
+    # Content items anywhere (dicts with a 'text' plus location keys).
+    items = [d for d in _walk_dicts(payload) if "text" in d and ("page" in d or "ayahs" in d)]
+    if items:
+        keys = sorted({k for d in items for k in d})
+        notes.append(f"content items: {len(items)}; keys (union): {keys}")
+        notes.append(
+            "content item id-like keys: "
+            + str(sorted({k for d in items for k in id_like_keys(d)}) or "NONE")
+        )
+        locs = [(d.get("part"), d.get("page"), d.get("ayahs")) for d in items]
+        notes.append(
+            f"(part, page, ayahs) unique: {len(set(locs)) == len(locs)} "
+            f"({len(set(locs))}/{len(locs)})"
+        )
+        ay = [str(d.get("ayahs")) for d in items if d.get("ayahs") is not None]
+        multi = [a for a in ay if not a.strip().isdigit()]
+        notes.append(f"'ayahs' non-single values: {len(multi)} e.g. {multi[:5]}")
+        texts = [d.get("text") for d in items if isinstance(d.get("text"), str)]
+        notes.append(f"duplicate texts across items: {len(texts) - len(set(texts))}")
+    if name == "books.json.gz":
+        for d in _walk_dicts(payload):
+            if d.get("id") in (2919, 32, 2012, 136, 331, 460) and "name" in d:
+                notes.append(
+                    f"book {d.get('id')}: author={json.dumps(d.get('author'), ensure_ascii=False)} "
+                    f"edition={d.get('edition')!r} nasher={d.get('nasher')!r}"
+                )
+    return notes
+
+
+async def run_dump_inspection(
+    *,
+    transport: httpx.AsyncBaseTransport | None = None,
+    out: Callable[[str], None] = print,
+) -> int:
+    import gzip
+    import hashlib
+    from datetime import date, timedelta
+
+    failures = 0
+    async with httpx.AsyncClient(
+        timeout=120, transport=transport, headers={"User-Agent": USER_AGENT}
+    ) as client:
+        out("=== QURANPEDIA OFFICIAL DUMPS (https://quranpedia.net/dumps?lang=en) ===")
+        manifest = (await client.get(f"{DUMPS_BASE}/manifest.json")).json()
+        out(
+            f"manifest version: {manifest.get('version')}; license: "
+            f"{json.dumps(manifest.get('license'), ensure_ascii=False)}"
+        )
+        entries = {f.get("name"): f for f in manifest.get("files", []) if isinstance(f, dict)}
+        for name in DUMP_FILES:
+            r = await client.get(f"{DUMPS_BASE}/{name}")
+            out(f"\n[{name}] HTTP {r.status_code}, {len(r.content)} bytes")
+            if r.status_code != 200:
+                failures += 1
+                continue
+            expected = (entries.get(name) or {}).get("sha256")
+            actual = hashlib.sha256(r.content).hexdigest()
+            out(f"  sha256 matches manifest: {expected == actual}")
+            raw = r.content
+            if raw[:2] == b"\x1f\x8b":
+                raw = gzip.decompress(raw)
+            for note in analyse_dump(name, json.loads(raw)):
+                out("  - " + note)
+
+        since = (date.today() - timedelta(days=360)).isoformat()
+        r = await client.get(f"{QURANPEDIA_BASE}/changes", params={"since": since})
+        out(f"\n[changes since {since}] HTTP {r.status_code}")
+        if r.status_code == 200:
+            changes = r.json().get("changes", {})
+            for ctype in ("ayah_book_contents", "books"):
+                block = changes.get(ctype) or {}
+                rows = block.get("rows") or []
+                out(f"  {ctype}: count={block.get('count')} truncated={block.get('truncated')}")
+                for row in rows[:3]:
+                    out(f"    row: {json.dumps(row, ensure_ascii=False)[:400]}")
+        else:
+            failures += 1
+    out(f"\nDone. failed downloads: {failures}")
+    return 0 if failures == 0 else 1
+
+
 def main() -> int:
+    if "--dumps" in sys.argv[1:]:
+        return asyncio.run(run_dump_inspection())
     return asyncio.run(run_validation())
 
 

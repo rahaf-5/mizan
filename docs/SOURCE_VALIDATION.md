@@ -161,3 +161,60 @@ Dorar (https://dorar.net/article/389, https://dorar.net/article/111):
 | Asbab — al-Wahidi | Retrievable (2919); **chunk-id gap + author missing in API** |
 | Al-Muharrar | Retrievable (460); **chunk-id gap** |
 | Hadith via Dorar | **Not viable for the current schema**: no record id/URL; storage terms restrictive |
+
+---
+
+# Blocker resolution round (2026-10-04, later) — research only, Task 5 NOT started
+
+## 1. Quranpedia record identity — NOT RESOLVED
+- Official dumps (https://quranpedia.net/dumps?lang=en, manifest https://quranpedia.net/dumps/manifest.json,
+  version 2026-10-02) include `tafsir-book-{32,2012,136,331}.json.gz` and
+  `asbab-book-{2919,460}.json.gz`, each with SHA-256. The dumps page documents tafsir/asbab book
+  files as having the **same schema as `/v1/ayah/{s}/{a}/book/{id}`**, i.e. the live content items
+  (`text, part, page, ayahs`) that carry **no passage id**.
+- The files are gzip; they could not be opened from the Cowork sandbox. Confirm locally:
+  `python -m app.cli.validate_sources --dumps` (checks SHA-256 vs manifest, lists record keys,
+  id-like keys, (part,page,ayahs) uniqueness, `ayahs` format, and `/changes` → `ayah_book_contents` rows).
+- `/v1/changes` exposes `ayah_book_contents` as a change type with `refetch` paths (rows observed for
+  `ayahs`: `{mushaf, surah, ayah, changed_at, refetch}`); the row shape for book contents was not
+  observable via WebFetch — included in the local check.
+- Traceability via dumps: Evidence → Source (book id + manifest version + sha256) → Provider
+  (Quranpedia) → **Original Record: still no official passage id** → Reference (book/part/page,
+  ayah) — chain still broken at the record step unless the local check finds an id.
+- Dumps license (manifest `license` block / https://quranpedia.net/dumps/LICENSE.md): use inside apps
+  needs no attribution; republishing as a dataset requires credit + link + version; content is
+  continuously corrected — state the version and re-sync via `/changes`. No explicit caching clause
+  beyond this. Third-party components (morphology GPL, syntax MIT) are not used by Mizan.
+  Contact: quranpedia.help@gmail.com (manifest).
+
+## 2. Editions (official metadata)
+| | 2012 | 32 |
+|---|---|---|
+| author | مجمع الملك فهد لطباعة المصحف الشريف | مجموعة من المؤلفين |
+| edition / year / publisher | — / — / — | الثانية / 1430 / مجمع الملك فهد |
+| page numbers | `page` = global ayah no. (not a print page) | printed page (2:255 → p. 42) + page image + PDFs |
+| dump | 630 KB | 610 KB |
+**Recommend 32** — complete edition metadata and real printed-page references (verifiable against the page image).
+
+| | 136 | 331 |
+|---|---|---|
+| edition | دار طيبة, ط2, 1420, 8 parts, محقق: سامي سلامة | دار الكتب العلمية, ط1 1419, محقق: محمد حسين شمس الدين |
+| short_name | تفسير ابن كثير | تفسير ابن كثير ط العلمية |
+| print reference | part/page (2:255 → 1/672) | part "1"/page 512 though edition is multi-volume (`parts`=1) |
+**Recommend 136** — complete edition metadata incl. muhaqqiq and volume/page structure consistent with an 8-volume print.
+
+## 3. Remaining Quranpedia gaps
+- Wahidi 2919 author: still `null` (API `/book/2919`, dumps manifest has title only) — NOT resolved; local `--dumps` also checks `books.json.gz`.
+- Surah names: **RESOLVED** — `GET /v1/mushafs/{id}` → `surahs[].name` (e.g. "سورة الفاتحة").
+- Quran text form: mushaf **1** = Hafs, "موافق لطبعة مجمع الملك فهد" but text is diacritized standard orthography (no ٱ);
+  mushaf **2** = "بالخط العثماني … غير موافق للمطبوع" and its text IS Uthmani rasm (ٱ, ٰ, small high marks). Ayah ids
+  differ per mushaf (2:255 → 262 in mushaf 1, 62512 in mushaf 2). Decision needed.
+- Multi-ayah ranges: not exposed — each content item has a single `ayahs` value (Ibn Kathir 2:1 → "8"); NOT resolved.
+- Asbab relation/context: no official field — NOT resolved.
+
+## 4. Dorar — NOT RESOLVED
+- Only official API remains `https://dorar.net/dorar_api.json?skey=` (https://dorar.net/article/389); no newer endpoint found on dorar.net.
+- The website itself has permanent per-hadith URLs `https://dorar.net/h/{code}` (seen as link structure on the
+  official search page), but the **API does not return them**; obtaining them would require scraping — not done.
+- No documented single-record retrieval. Contact: email on the API page (obfuscated) and https://dorar.net/feedback.
+- Storage/caching: previous finding stands (https://dorar.net/article/111).
