@@ -218,3 +218,10 @@ Dorar (https://dorar.net/article/389, https://dorar.net/article/111):
   official search page), but the **API does not return them**; obtaining them would require scraping — not done.
 - No documented single-record retrieval. Contact: email on the API page (obfuscated) and https://dorar.net/feedback.
 - Storage/caching: previous finding stands (https://dorar.net/article/111).
+
+## Local `--dumps` run (user's Mac, 2026-10-04) — reported result
+- `Done. failed downloads: 0` (manifest-listed files downloaded, SHA-256 checked).
+- Reported by the user from the terminal output: **no id-like keys on individual tafsir/asbab content
+  items** in the official dumps; `/v1/changes` provides official `refetch` paths addressed by
+  **book + surah + ayah**. Passage-id search closed. No substitute identifier invented.
+- Raw terminal output not yet stored in the repo (it was printed on the Mac only).
