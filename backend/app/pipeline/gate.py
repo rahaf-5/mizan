@@ -16,6 +16,7 @@ from app.domain.claim import ClassifiedClaim
 from app.domain.enums import (
     ClaimType,
     ComponentKind,
+    ComponentRole,
     RetrievalMatchBasis,
     RetryReason,
     ValidationOutcome,
@@ -28,7 +29,7 @@ from app.domain.retrieval import RetrievalResult
 from app.domain.trusted_sources import get_trusted_source
 from app.domain.validation import FinalValidationResult, ValidationCheckResult
 from app.domain.verification import AnalysisResult, StatusDetermination
-from app.pipeline.analysis import component_outcome, status_from_outcomes
+from app.pipeline.analysis import component_outcome, status_from_components
 from app.pipeline.passage_analysis import is_claim_span, occurs_in
 
 _STRONG = {
@@ -119,7 +120,7 @@ class TrustedValidationGate:
             mine = [a for a in analysis.assessments if a.component_id == c.component_id]
             if c.outcome != component_outcome(mine):
                 problems[V.STATUS_MATCHES_EVIDENCE].append(f"{c.component_id}: outcome mismatch")
-        expected = status_from_outcomes([c.outcome for c in analysis.components if c.outcome])
+        expected = status_from_components(analysis.components)
         if expected != determination.status:
             problems[V.STATUS_MATCHES_EVIDENCE].append(
                 f"status {determination.status.value} != recomputed {expected.value}"
@@ -129,6 +130,8 @@ class TrustedValidationGate:
         status = determination.status
         if status == S.SUPPORTED:
             for c in analysis.components:
+                if c.role == ComponentRole.ANCHOR:
+                    continue
                 rels = [
                     a
                     for a in analysis.assessments

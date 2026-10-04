@@ -29,8 +29,10 @@ RULES
   contradicts — the span states something incompatible with the component;
   insufficient — related to the component but does not establish it;
   unrelated — not about the component.
-- span: copy the exact words VERBATIM from that passage (at least 3 words). Required for
-  supports, partially_supports and contradicts. Never paraphrase a span.
+- segments: every passage is split into numbered segments like [E2.3]. Point to the 1-3
+  CONSECUTIVE segment ids of THAT SAME passage whose exact text states what you claim. Required
+  for supports, partially_supports and contradicts. Do not cite segments of another passage.
+  Mizan quotes the cited segments word for word from the source; you never retype them.
 - asbab_nuzul: answer supports ONLY if the span itself explicitly states the revelation event or
   context the claim describes. Never decide whether it is the "direct cause".
 - Never output references, sources, gradings, URLs or a final verdict."""
@@ -45,16 +47,21 @@ USER_TEMPLATE = """<<<DATA-{nonce}>>>
 
 
 def build_prompt(
-    claim_text: str, items: list[tuple[str, str, str]], allowed_types: list[str]
+    claim_text: str,
+    items: list[tuple[str, str, list[tuple[str, str]]]],
+    allowed_types: list[str],
 ) -> tuple[str, str]:
-    """items: (label, source name, passage text)."""
+    """items: (label, source name, [(segment id, exact segment text), ...])."""
     nonce = secrets.token_hex(8)
 
     def safe(t: str) -> str:
         return t.replace("<<<", "‹‹‹").replace(">>>", "›››")
 
-    rendered = "\n\n".join(f"{label} | {safe(name)}\n{safe(text)}" for label, name, text in items)
+    blocks = []
+    for label, name, segments in items:
+        body = "\n".join(f"[{sid}] {safe(text)}" for sid, text in segments)
+        blocks.append(f"=== {label} | {safe(name)} ===\n{body}\n=== END {label} ===")
     return (
         SYSTEM_PROMPT.format(nonce=nonce, types=", ".join(allowed_types)),
-        USER_TEMPLATE.format(nonce=nonce, claim=safe(claim_text), items=rendered),
+        USER_TEMPLATE.format(nonce=nonce, claim=safe(claim_text), items="\n\n".join(blocks)),
     )

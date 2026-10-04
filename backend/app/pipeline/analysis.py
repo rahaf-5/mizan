@@ -7,7 +7,9 @@ Per component (from its validated assessments):
   partially_supports                                  -> partially_supported
   insufficient only                                   -> insufficient
   nothing                                             -> not_established
-Claim status (in this order; approved 2026-10-04):
+Claim status — computed from SUBSTANTIVE components only (anchors such as the quoted ayah of a
+tafsir/asbab claim never upgrade it; a contradicted anchor makes the claim contradicted).
+In this order (approved 2026-10-04):
   any conflicting                      -> conflicting_evidence
   any contradicted                     -> contradicted   (component details are preserved)
   all supported                        -> supported
@@ -21,6 +23,7 @@ from __future__ import annotations
 
 from app.domain.claim import ClassifiedClaim
 from app.domain.enums import ComponentOutcome as O
+from app.domain.enums import ComponentRole
 from app.domain.enums import EvidenceRelationship as R
 from app.domain.enums import VerificationStatus as S
 from app.domain.retrieval import RetrievalResult
@@ -64,6 +67,22 @@ def status_from_outcomes(outcomes: list[O]) -> S:
     if O.INSUFFICIENT in outcomes:
         return S.INSUFFICIENT_EVIDENCE
     return S.NO_EVIDENCE_FOUND
+
+
+def status_from_components(components) -> S:  # type: ignore[no-untyped-def]
+    """Status from SUBSTANTIVE components; anchors never upgrade it.
+
+    A verified anchor (e.g. the quoted ayah of a tafsir claim) is context only. A CONTRADICTED
+    anchor is a directly contradicted statement in the claim, so the claim is contradicted.
+    """
+    substantive = [
+        c.outcome for c in components if c.outcome and c.role == ComponentRole.SUBSTANTIVE
+    ]
+    anchors = [c.outcome for c in components if c.outcome and c.role == ComponentRole.ANCHOR]
+    status = status_from_outcomes(substantive)
+    if O.CONTRADICTED in anchors and status not in (S.CONFLICTING_EVIDENCE, S.CONTRADICTED):
+        return S.CONTRADICTED
+    return status
 
 
 class DeterministicEvidenceAnalyzer:
@@ -115,8 +134,15 @@ class DeterministicStatusDeterminer:
     async def determine(
         self, claim: ClassifiedClaim, analysis: AnalysisResult, retrieval: RetrievalResult
     ) -> StatusDetermination:
-        status = status_from_outcomes([c.outcome for c in analysis.components if c.outcome])
-        basis = sorted({e for c in analysis.components for e in c.evidence_ids})
+        status = status_from_components(analysis.components)
+        basis = sorted(
+            {
+                e
+                for c in analysis.components
+                if c.role == ComponentRole.SUBSTANTIVE or c.outcome == O.CONTRADICTED
+                for e in c.evidence_ids
+            }
+        )
         return StatusDetermination(
             claim_id=claim.claim_id,
             status=status,

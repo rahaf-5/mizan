@@ -239,6 +239,19 @@ class ComponentKind(_StrEnum):
     STATEMENT = "statement"
 
 
+class ComponentRole(_StrEnum):
+    """Whether a component is what the claim ASSERTS or only identifies its subject.
+
+    Approved 2026-10-04: in «معنى قوله تعالى «...» أن X» (tafsir) or a revelation-context claim
+    (asbab), the quoted ayah is an ANCHOR: it identifies which ayah the assertion concerns. Its
+    verification is kept and shown, but it never raises the claim status; only substantive
+    components decide it (a contradicted anchor still makes the claim contradicted).
+    """
+
+    SUBSTANTIVE = "substantive"
+    ANCHOR = "anchor"
+
+
 class ComponentOutcome(_StrEnum):
     """Deterministic per-component result (internal; the claim status is derived from these)."""
 

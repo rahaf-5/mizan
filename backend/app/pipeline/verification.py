@@ -11,7 +11,7 @@ Keyword-only candidates are NEVER judged: they are kept only as related/unverifi
 from __future__ import annotations
 
 from app.domain.claim import ClassifiedClaim
-from app.domain.enums import ClaimType, ComponentKind, RetrievalMatchBasis
+from app.domain.enums import ClaimType, ComponentKind, ComponentRole, RetrievalMatchBasis
 from app.domain.retrieval import CandidateEvidence
 from app.domain.trusted_sources import TrustedSourceId, get_trusted_source
 from app.domain.verification import ClaimComponent, EvidenceAssessment, VerificationFindings
@@ -48,6 +48,10 @@ class TrustedEvidenceVerifier:
             index = self._registry.adapter_for(TrustedSourceId.QURAN).quran_index()  # type: ignore[attr-defined]
             quran = [c for c in strong if c.evidence.trusted_source_id == TrustedSourceId.QURAN]
             comps, assess = QuranVerifier(index).verify(claim, quran)
+            if any(t in PASSAGE_TYPES for t in required):
+                # The quoted ayah / its location identifies WHICH ayah the tafsir / asbab
+                # assertion concerns: context (anchor), not an independent assertion.
+                comps = [c.model_copy(update={"role": ComponentRole.ANCHOR}) for c in comps]
             components += comps
             assessments += assess
 

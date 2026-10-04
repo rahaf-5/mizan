@@ -86,7 +86,20 @@ class ScriptedLLM(LLMProvider):
 
 def labels(request: LLMRequest) -> dict[str, str]:
     """label -> source name, parsed from the prompt the verifier built."""
-    return dict(re.findall(r"^(E\d+) \| (.+)$", request.user_content, re.M))
+    return dict(re.findall(r"^=== (E\d+) \| (.+) ===$", request.user_content, re.M))
+
+
+def segment_ids(request: LLMRequest, label: str, phrase: str | None) -> list[str]:
+    """Ids of the numbered segment of `label` containing `phrase` (what a model should cite).
+
+    A phrase that is not in the passage yields an id that does not exist (invalid citation).
+    """
+    if phrase is None:
+        return []
+    for sid, text in re.findall(rf"^\[({label}\.\d+)\] (.+)$", request.user_content, re.M):
+        if phrase in text:
+            return [sid]
+    return [f"{label}.999"]
 
 
 def cls(t, *extra, hints=()):
@@ -204,7 +217,11 @@ def analysis_for(
             rel, span = judge(label, source)
             js.append(
                 EvidenceJudgementDraft(
-                    item=label, component_id="c1", relation=rel, span=span, rationale="r"
+                    item=label,
+                    component_id="c1",
+                    relation=rel,
+                    segments=segment_ids(request, label, span),
+                    rationale="r",
                 )
             )
         return EvidenceAnalysisDraft(
@@ -269,7 +286,7 @@ async def test_invalid_span_is_retried_once_then_accepted():
                     item=label,
                     component_id="c1",
                     relation=AnalysisRelation.SUPPORTS,
-                    span=span,
+                    segments=segment_ids(request, label, span),
                     rationale="r",
                 )
             ],
@@ -398,3 +415,211 @@ async def test_integrity_failure_after_retries_is_system_error(monkeypatch):
 def test_dorar_spy_is_registered():
     reg = registry(handler=handler)
     assert any(isinstance(a, SpyDorar) for a in reg.adapters())
+
+
+# ------------------------------------------------------------------ regression: anchors (fix 2)
+
+
+def by_role(o):
+    return {c.role.value: c for c in o.analysis.components}
+
+
+async def test_valid_quran_anchor_does_not_inflate_tafsir_status():
+    """Real smoke case 6: verified quote + unestablished meaning must NOT be partially_supported."""
+    claim = "معنى قوله تعالى «لا تأخذه سنة ولا نوم» أن الله لا يغضب على عباده"
+    llm = ScriptedLLM(
+        cls(ClaimType.TAFSIR, ClaimType.QURAN),
+        analysis_for(lambda *_: (AnalysisRelation.INSUFFICIENT, None), "أن الله لا يغضب على عباده"),
+    )
+    o = await run(claim, llm)
+    assert o.status == VerificationStatus.INSUFFICIENT_EVIDENCE
+    anchor = next(c for c in o.analysis.components if c.kind == ComponentKind.QURAN_QUOTE)
+    assert (
+        anchor.role.value == "anchor" and anchor.outcome == ComponentOutcome.SUPPORTED
+    )  # kept & shown
+    assert by_role(o)["substantive"].outcome == ComponentOutcome.INSUFFICIENT
+
+
+async def test_valid_anchor_with_unrelated_passages_is_no_evidence_found():
+    o = await run(
+        TAFSIR_CLAIM,
+        ScriptedLLM(
+            cls(ClaimType.TAFSIR, ClaimType.QURAN),
+            analysis_for(lambda *_: (AnalysisRelation.UNRELATED, None)),
+        ),
+    )
+    assert o.status == VerificationStatus.NO_EVIDENCE_FOUND
+
+
+async def test_supported_asbab_with_anchor_stays_supported():
+    def judge(label, source):
+        return (
+            (AnalysisRelation.SUPPORTS, "أنزلت هذه الآية في الأنصار")
+            if "واحدي" in source
+            else (AnalysisRelation.INSUFFICIENT, None)
+        )
+
+    claim = "نزل قوله تعالى «إن الصفا والمروة من شعائر الله» في الأنصار"
+    o = await run(
+        claim,
+        ScriptedLLM(
+            cls(ClaimType.ASBAB_NUZUL, ClaimType.QURAN),
+            analysis_for(judge, "في الأنصار", ClaimType.ASBAB_NUZUL),
+        ),
+    )
+    assert o.status == VerificationStatus.SUPPORTED
+
+
+async def test_partial_asbab_comes_from_substantive_components():
+    claim = (
+        "نزل قوله تعالى «إن الصفا والمروة من شعائر الله» في الأنصار، "
+        "وكان ذلك في السنة الأولى من الهجرة"
+    )
+
+    def fn(request, n):
+        wahidi = next(lbl for lbl, src in labels(request).items() if "واحدي" in src)
+        return EvidenceAnalysisDraft(
+            components=[
+                ClaimComponentDraft(
+                    component_id="c1", text="في الأنصار", claim_type=ClaimType.ASBAB_NUZUL
+                ),
+                ClaimComponentDraft(
+                    component_id="c2",
+                    text="وكان ذلك في السنة الأولى من الهجرة",
+                    claim_type=ClaimType.ASBAB_NUZUL,
+                ),
+            ],
+            judgements=[
+                EvidenceJudgementDraft(
+                    item=wahidi,
+                    component_id="c1",
+                    relation=AnalysisRelation.SUPPORTS,
+                    segments=segment_ids(request, wahidi, "أنزلت هذه الآية في الأنصار"),
+                    rationale="r",
+                ),
+                EvidenceJudgementDraft(
+                    item=wahidi,
+                    component_id="c2",
+                    relation=AnalysisRelation.UNRELATED,
+                    rationale="r",
+                ),
+            ],
+        )
+
+    o = await run(claim, ScriptedLLM(cls(ClaimType.ASBAB_NUZUL, ClaimType.QURAN), fn))
+    assert o.status == VerificationStatus.PARTIALLY_SUPPORTED
+
+
+async def test_contradicted_anchor_still_makes_the_claim_contradicted():
+    def judge(label, source):
+        return (
+            (AnalysisRelation.SUPPORTS, "لا تأخذه سنة أي: نعاس")
+            if "الميسر" in source
+            else (AnalysisRelation.INSUFFICIENT, None)
+        )
+
+    claim = "معنى قوله تعالى في سورة آل عمران «لا تأخذه سنة ولا نوم» أن الله لا يأخذه نعاس"
+    o = await run(claim, ScriptedLLM(cls(ClaimType.TAFSIR, ClaimType.QURAN), analysis_for(judge)))
+    assert o.status == VerificationStatus.CONTRADICTED
+    loc = next(c for c in o.analysis.components if c.kind == ComponentKind.QURAN_LOCATION)
+    assert loc.role.value == "anchor" and loc.outcome == ComponentOutcome.CONTRADICTED
+
+
+async def test_pure_quran_claim_components_are_substantive():
+    o = await run(
+        "قال تعالى في سورة البقرة: «إن الصفا والمروة من شعائر الله»",
+        ScriptedLLM(cls(ClaimType.QURAN)),
+    )
+    assert {c.role.value for c in o.analysis.components} == {"substantive"}
+
+
+# ------------------------------------------------------------------ regression: spans (fix 1)
+
+
+def test_segments_are_exact_substrings_of_the_evidence():
+    from app.pipeline.passage_analysis import segment_passage
+
+    text = (
+        "قوله تعالى: لا تأخذه سنة.\nأي لا يغلبه نعاس ولا نوم؛ " + " ".join(["كلمة"] * 70) + " نهاية"
+    )
+    segs = segment_passage(text)
+    assert len(segs) >= 4
+    for a, b in segs:
+        assert text[a:b] and text[a:b] == text[a:b].strip()
+    assert all(len(text[a:b].split()) <= 30 for a, b in segs)
+
+
+async def test_multi_segment_citation_yields_one_exact_contiguous_span():
+    long_text = "أول جملة في المقطع هنا. ثاني جملة تقول لا يأخذه نعاس. ثالث جملة للختام هنا."
+    PASSAGES_LONG = dict(PASSAGES)
+    PASSAGES_LONG["/v1/ayah/2/255/book/2012"] = passage(2012, "التفسير الميسر", long_text)
+
+    def h(r):
+        body = PASSAGES_LONG.get(r.url.path) or {
+            "book": {"id": int(r.url.path.rsplit("/", 1)[-1]), "name": "x"},
+            "content": [],
+        }
+        return httpx.Response(200, json=body)
+
+    def fn(request, n):
+        lbl = next(x for x, src in labels(request).items() if "الميسر" in src)
+        return EvidenceAnalysisDraft(
+            components=[
+                ClaimComponentDraft(
+                    component_id="c1", text="لا يأخذه نعاس", claim_type=ClaimType.TAFSIR
+                )
+            ],
+            judgements=[
+                EvidenceJudgementDraft(
+                    item=lbl,
+                    component_id="c1",
+                    relation=AnalysisRelation.SUPPORTS,
+                    segments=[f"{lbl}.2", f"{lbl}.3"],
+                    rationale="r",
+                )
+            ],
+        )
+
+    o = await run(TAFSIR_CLAIM, ScriptedLLM(cls(ClaimType.TAFSIR), fn), reg=registry(handler=h))
+    [a] = [x for x in o.analysis.assessments if x.relationship.value == "supports"]
+    assert a.evidence_span == "ثاني جملة تقول لا يأخذه نعاس. ثالث جملة للختام هنا."
+    assert a.evidence_span in long_text  # byte-exact substring of the source text
+
+
+@pytest.mark.parametrize(
+    "cite",
+    [
+        lambda lbl, other: [f"{lbl}.1", f"{lbl}.3"],
+        lambda lbl, other: [f"{other}.1"],
+        lambda lbl, other: [],
+    ],
+)
+async def test_bad_segment_citations_fail_closed(cite):
+    def fn(request, n):
+        ls = list(labels(request))
+        lbl = next(x for x, src in labels(request).items() if "الميسر" in src)
+        other = next(x for x in ls if x != lbl)
+        return EvidenceAnalysisDraft(
+            components=[
+                ClaimComponentDraft(
+                    component_id="c1", text="لا يأخذه نعاس", claim_type=ClaimType.TAFSIR
+                )
+            ],
+            judgements=[
+                EvidenceJudgementDraft(
+                    item=lbl,
+                    component_id="c1",
+                    relation=AnalysisRelation.SUPPORTS,
+                    segments=cite(lbl, other),
+                    rationale="r",
+                )
+            ],
+        )
+
+    llm = ScriptedLLM(cls(ClaimType.TAFSIR), fn)
+    o = await run(TAFSIR_CLAIM, llm)
+    assert (
+        isinstance(o, SystemErrorOutcome)
+        and o.error.code == SystemErrorCode.VERIFICATION_INCOMPLETE
+    )
+    assert llm.calls.count("EvidenceAnalysisDraft") == 2  # one allowed retry, then fail closed

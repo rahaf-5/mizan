@@ -131,11 +131,13 @@ class EvidenceJudgementDraft(LLMOutput):
     item: str = Field(description="Label of the source passage, e.g. E1.")
     component_id: str
     relation: AnalysisRelation
-    span: str | None = Field(
-        default=None,
+    segments: list[str] = Field(
+        default_factory=list,
+        max_length=3,
         description=(
-            "Exact words copied VERBATIM from that passage that the relation rests on. Required "
-            "for supports, partially_supports and contradicts."
+            'Ids of 1-3 CONSECUTIVE numbered segments of THAT passage (e.g. ["E2.3", "E2.4"]) '
+            "whose exact text the relation rests on. Required for supports, partially_supports "
+            "and contradicts; [] otherwise."
         ),
     )
     supported_part: str | None = Field(default=None, description="For partially_supports.")

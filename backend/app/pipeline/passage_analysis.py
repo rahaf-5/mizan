@@ -2,14 +2,18 @@
 
 Gemini only RELATES given passages to verbatim components of the confirmed claim. Mizan then:
   * rejects components that are not verbatim spans of the claim;
-  * rejects supports / partially_supports / contradicts without a verbatim span (>= 3 words)
-    that really occurs in that passage's text;
+  * gives Gemini each passage as numbered segments (exact substrings of the evidence text);
+    supports / partially_supports / contradicts must cite 1-3 CONSECUTIVE segments of THAT
+    passage; Mizan copies the span from the evidence itself (never retyped by the model) and
+    still validates that it occurs verbatim (>= 3 words);
   * drops `unrelated` judgements and judgements that cross the Source Boundary.
 An invalid analysis is re-requested ONCE; if still invalid, verification fails closed
 (VerificationIntegrityError -> system error, never an evidentiary status).
 """
 
 from __future__ import annotations
+
+import re
 
 from app.core_logging import get_logger
 from app.domain.claim import ClassifiedClaim
@@ -32,6 +36,35 @@ _REL = {
     AnalysisRelation.CONTRADICTS: EvidenceRelationship.CONTRADICTS,
     AnalysisRelation.INSUFFICIENT: EvidenceRelationship.INSUFFICIENT,
 }
+
+
+_WORD = re.compile(r"\S+")
+_SENTENCE_END = (".", "؟", "?", "!", "؛", ";")
+MAX_SEGMENT_WORDS = 30
+MIN_SEGMENT_WORDS = 3
+
+
+def segment_passage(text: str) -> list[tuple[int, int]]:
+    """(start, end) character ranges of numbered segments; each is an EXACT substring of `text`.
+
+    Boundaries: line breaks and sentence-final punctuation; long sentences are cut every
+    MAX_SEGMENT_WORDS words; very short pieces are merged into the previous segment.
+    """
+    words = list(_WORD.finditer(text))
+    segments: list[list[re.Match[str]]] = []
+    cur: list[re.Match[str]] = []
+    for i, w in enumerate(words):
+        cur.append(w)
+        nxt = words[i + 1] if i + 1 < len(words) else None
+        newline = nxt is not None and "\n" in text[w.end() : nxt.start()]
+        boundary = w.group().endswith(_SENTENCE_END) or newline
+        if boundary or len(cur) >= MAX_SEGMENT_WORDS or nxt is None:
+            if segments and len(cur) < MIN_SEGMENT_WORDS:
+                segments[-1].extend(cur)
+            else:
+                segments.append(cur)
+            cur = []
+    return [(seg[0].start(), seg[-1].end()) for seg in segments if seg]
 
 
 def occurs_in(span: str, text: str, *, min_words: int = MIN_SPAN_WORDS) -> bool:
@@ -57,10 +90,19 @@ class PassageAnalyzer:
         types: list[ClaimType],
     ) -> tuple[list[ClaimComponent], list[EvidenceAssessment]]:
         labels = {f"E{i}": c for i, c in enumerate(passages, start=1)}
-        items = [
-            (label, c.evidence.source_name, c.evidence.text[:MAX_PASSAGE_CHARS])
-            for label, c in labels.items()
-        ]
+        self._segments: dict[str, tuple[str, int, int]] = {}  # "E2.3" -> (label, start, end)
+        self._texts = {label: c.evidence.text for label, c in labels.items()}
+        items = []
+        for label, c in labels.items():
+            text = c.evidence.text
+            segs = []
+            for n, (a, b) in enumerate(segment_passage(text), start=1):
+                if a >= MAX_PASSAGE_CHARS:
+                    break
+                sid = f"{label}.{n}"
+                self._segments[sid] = (label, a, b)
+                segs.append((sid, text[a:b]))
+            items.append((label, c.evidence.source_name, segs))
         system, user = build_prompt(claim.confirmed_claim_text, items, [t.value for t in types])
         problems: list[str] = []
         for attempt in range(1, self._max_attempts + 1):
@@ -110,13 +152,35 @@ class PassageAnalyzer:
                 AnalysisRelation.PARTIALLY_SUPPORTS,
                 AnalysisRelation.CONTRADICTS,
             ):
-                if not j.span or not occurs_in(j.span, labels[j.item].evidence.text):
+                span = self._span(j.item, j.segments)
+                if span is None:
+                    out.append(
+                        f"{j.item}/{j.component_id}: cite 1-3 consecutive segment ids of {j.item}"
+                    )
+                elif not occurs_in(span, labels[j.item].evidence.text):
                     out.append(f"{j.item}/{j.component_id}: span not found verbatim in passage")
             if j.relation == AnalysisRelation.PARTIALLY_SUPPORTS and not (
                 j.supported_part and j.unsupported_part
             ):
                 out.append(f"{j.item}/{j.component_id}: partial without both parts")
         return out
+
+    def _span(self, label: str, segment_ids: list[str]) -> str | None:
+        """Exact contiguous source text of 1-3 consecutive segments of ONE passage, else None."""
+        if not 1 <= len(segment_ids) <= 3:
+            return None
+        nums = []
+        for sid in segment_ids:
+            owner = self._segments.get(sid)
+            if owner is None or owner[0] != label:
+                return None
+            nums.append(int(sid.rsplit(".", 1)[1]))
+        if nums != list(range(nums[0], nums[0] + len(nums))):
+            return None
+        # One exact contiguous substring of the evidence text (from first to last segment).
+        return self._texts[label][
+            self._segments[segment_ids[0]][1] : self._segments[segment_ids[-1]][2]
+        ]
 
     def _convert(self, draft, labels, types):  # type: ignore[no-untyped-def]
         cid = {c.component_id: f"s{i}" for i, c in enumerate(draft.components, start=1)}
@@ -136,13 +200,8 @@ class PassageAnalyzer:
             if ctype[j.component_id] not in src.qualified_for:
                 continue  # Source Boundary: this source cannot establish this component
             rel = _REL[j.relation]
-            span = j.span.strip() if j.span else None
-            if (
-                rel == EvidenceRelationship.INSUFFICIENT
-                and span
-                and not occurs_in(span, cand.evidence.text, min_words=1)
-            ):
-                span = None  # optional for insufficient; never keep an unverifiable span
+            # The span is copied from the evidence itself via the cited segment ids.
+            span = self._span(j.item, j.segments) if j.segments else None
             assessments.append(
                 EvidenceAssessment(
                     evidence_id=cand.evidence.evidence_id,

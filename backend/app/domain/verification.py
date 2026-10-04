@@ -15,6 +15,7 @@ from app.domain.enums import (
     ClaimType,
     ComponentKind,
     ComponentOutcome,
+    ComponentRole,
     EvidenceRelationship,
     EvidenceStrengthSignal,
     VerificationStatus,
@@ -85,6 +86,8 @@ class ClaimComponent(BaseModel):
     #: Verbatim span of confirmed_claim_text (or the user's provided ayah text for a quote).
     text: str = Field(min_length=1)
     kind: ComponentKind
+    #: substantive (decides the status) or anchor (context/prerequisite; never upgrades it).
+    role: ComponentRole = ComponentRole.SUBSTANTIVE
     #: Which qualified sources may judge it (Source Boundary).
     claim_type: ClaimType
     #: Filled by Evidence Analysis (deterministic rules); None before analysis.
