@@ -5,6 +5,7 @@ import "@fontsource/ibm-plex-sans-arabic/700.css";
 import "@fontsource/amiri-quran/400.css";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
+import { Providers } from "./providers";
 import { defaultLocale, getDictionary, localeConfig } from "@/i18n";
 
 const t = getDictionary();
@@ -24,7 +25,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang={lang} dir={dir}>
       <body className="min-h-dvh antialiased">
-        <AppShell>{children}</AppShell>
+        <Providers>
+          <AppShell>{children}</AppShell>
+        </Providers>
       </body>
     </html>
   );

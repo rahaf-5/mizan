@@ -1,10 +1,10 @@
 import Link from "next/link";
+import { ScalesIcon } from "@/components/icons";
 import { getDictionary } from "@/i18n";
 
 const t = getDictionary();
 
 const navItems = [
-  { href: "/", label: t.nav.home },
   { href: "/quick-check", label: t.nav.quickCheck },
   { href: "/full-content", label: t.nav.fullContent },
 ] as const;
@@ -19,19 +19,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {t.a11y.skipToContent}
       </a>
 
-      <header className="border-b border-[var(--color-border)] bg-[var(--color-card)]">
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <Link href="/" className="flex items-baseline gap-2 no-underline">
-            <span aria-hidden="true" className="text-2xl">
-              ⚖️
+      <header className="border-b border-[var(--color-border)] bg-[var(--color-card)]/90 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
+          <Link href="/" aria-label={t.brand.logoLabel} className="flex items-center gap-2">
+            <span className="grid size-9 place-items-center rounded-xl bg-[var(--color-brand)] text-[var(--color-on-brand)]">
+              <ScalesIcon className="size-5" />
             </span>
             <span className="text-2xl font-bold text-[var(--color-brand)]">{t.brand.name}</span>
-            <span className="hidden text-sm text-[var(--color-muted)] sm:inline">
+            <span className="hidden text-sm text-[var(--color-muted)] md:inline">
               {t.brand.tagline}
             </span>
           </Link>
           <nav aria-label={t.a11y.mainNav}>
-            <ul className="flex flex-wrap gap-1 text-sm sm:gap-2">
+            <ul className="flex flex-wrap gap-1 text-sm">
               {navItems.map((item) => (
                 <li key={item.href}>
                   <Link

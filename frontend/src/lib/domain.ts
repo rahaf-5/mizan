@@ -59,3 +59,11 @@ export const TRUSTED_SOURCE_IDS = [
   "dorar_hadith",
 ] as const;
 export type TrustedSourceId = (typeof TRUSTED_SOURCE_IDS)[number];
+
+/** Check modes (backend CheckMode). */
+export const CHECK_MODES = ["quick_check", "full_content"] as const;
+export type CheckMode = (typeof CHECK_MODES)[number];
+
+/** Input types (backend InputType). */
+export const INPUT_TYPES = ["text", "image"] as const;
+export type InputType = (typeof INPUT_TYPES)[number];

@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  CHECK_MODES,
+  INPUT_TYPES,
   CLAIM_OUTCOME_KINDS,
   CLAIM_TYPES,
   EVIDENCE_RELATIONSHIPS,
@@ -13,7 +15,7 @@ import {
   VERIFICATION_STATUSES,
 } from "@/lib/domain";
 
-const snapshotPath = fileURLToPath(new URL("../../contracts/domain-contracts.json", import.meta.url));
+const snapshotPath = fileURLToPath(new URL("../../../contracts/domain-contracts.json", import.meta.url));
 const snapshot = JSON.parse(readFileSync(snapshotPath, "utf-8")) as {
   enums: Record<string, string[]>;
   claimOutcomeKinds: string[];
@@ -29,6 +31,8 @@ describe("frontend domain mirror matches the backend contract snapshot", () => {
     ["ResultGroup", RESULT_GROUPS],
     ["OutOfScopeReason", OUT_OF_SCOPE_REASONS],
     ["TrustedSourceId", TRUSTED_SOURCE_IDS],
+    ["CheckMode", CHECK_MODES],
+    ["InputType", INPUT_TYPES],
   ] as const)("%s", (name, values) => {
     expect([...values]).toEqual(snapshot.enums[name]);
   });

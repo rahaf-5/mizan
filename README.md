@@ -5,8 +5,9 @@ The approved product specification (`MIZAN_PRODUCT_SPEC.md`, in the Mizan projec
 
 > **Claim First. Evidence Second. Judgment Last.** — الادعاء أولًا، الدليل ثانيًا، والنتيجة أخيرًا.
 
-**Status:** Task 1 — Project Foundation. Pipeline stages, trusted-source adapters and the LLM
-provider are typed contracts/placeholders; no verification logic is implemented yet.
+**Status:** Task 2 — Home, Quick Check and Full Content input screens. Inputs are validated and
+*prepared* for later stages (claim review, extraction, OCR); no OCR, extraction or verification runs
+yet. Pipeline stages, trusted-source adapters and the LLM provider remain typed contracts/placeholders.
 
 ## Repository layout
 
@@ -23,7 +24,12 @@ mizan/
 │   │   └── config.py   Environment configuration
 │   ├── migrations/     Alembic (no revisions yet)
 │   └── tests/
-├── frontend/           Next.js (App Router) + TypeScript + Tailwind, Arabic RTL shell
+├── frontend/           Next.js (App Router) + TypeScript + Tailwind, Arabic RTL
+│   ├── src/app/        routes: / · /quick-check · /full-content · /status
+│   ├── src/features/   quick-check/, full-content/ (input screens)
+│   ├── src/lib/input/  typed input contracts, validation, in-memory input session
+│   ├── src/i18n/       centralized UI strings (ar)
+│   └── tests/          unit/, components/ (jsdom), integration/
 ├── contracts/          domain-contracts.json — shared enum snapshot (generated)
 ├── docs/               ARCHITECTURE.md, INTEGRATION_TODO.md
 ├── scripts/check.sh    Run all checks
