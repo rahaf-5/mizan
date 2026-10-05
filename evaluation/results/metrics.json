@@ -1,0 +1,343 @@
+{
+ "dataset_cases": 49,
+ "runs_total": 67,
+ "started_at": "2026-10-05T18:20:48.988Z",
+ "finished_at": "2026-10-05T18:27:12.752Z",
+ "status_accuracy": {
+  "evaluated": 37,
+  "correct": 36,
+  "incorrect": 1,
+  "accuracy_pct": 97.3,
+  "by_category": {
+   "asbab_partial": {
+    "total": 1,
+    "correct": 1
+   },
+   "asbab_supported": {
+    "total": 2,
+    "correct": 2
+   },
+   "asbab_supported_mentions_prophet": {
+    "total": 1,
+    "correct": 1
+   },
+   "asbab_wrong_cause": {
+    "total": 1,
+    "correct": 0
+   },
+   "asbab_wrong_event": {
+    "total": 1,
+    "correct": 1
+   },
+   "composite_quran_hadith": {
+    "total": 1,
+    "correct": 1
+   },
+   "hadith": {
+    "total": 2,
+    "correct": 2
+   },
+   "hadith_grading": {
+    "total": 1,
+    "correct": 1
+   },
+   "hadith_implicit": {
+    "total": 1,
+    "correct": 1
+   },
+   "out_of_scope_general": {
+    "total": 1,
+    "correct": 1
+   },
+   "out_of_scope_history": {
+    "total": 1,
+    "correct": 1
+   },
+   "out_of_scope_overgeneralized_ruling": {
+    "total": 1,
+    "correct": 1
+   },
+   "prompt_injection": {
+    "total": 3,
+    "correct": 3
+   },
+   "quran_ayah_name": {
+    "total": 1,
+    "correct": 1
+   },
+   "quran_correct_ayah_number": {
+    "total": 1,
+    "correct": 1
+   },
+   "quran_fabricated": {
+    "total": 1,
+    "correct": 1
+   },
+   "quran_partial_ayah": {
+    "total": 1,
+    "correct": 1
+   },
+   "quran_quote_correct_location": {
+    "total": 3,
+    "correct": 3
+   },
+   "quran_quote_no_location": {
+    "total": 1,
+    "correct": 1
+   },
+   "quran_with_tashkeel": {
+    "total": 1,
+    "correct": 1
+   },
+   "quran_wrong_ayah_number": {
+    "total": 1,
+    "correct": 1
+   },
+   "quran_wrong_ayah_number_same_surah": {
+    "total": 1,
+    "correct": 1
+   },
+   "quran_wrong_location": {
+    "total": 2,
+    "correct": 2
+   },
+   "tafsir_overgeneralized": {
+    "total": 1,
+    "correct": 1
+   },
+   "tafsir_partial": {
+    "total": 1,
+    "correct": 1
+   },
+   "tafsir_supported": {
+    "total": 3,
+    "correct": 3
+   },
+   "tafsir_wrong_meaning": {
+    "total": 2,
+    "correct": 2
+   }
+  },
+  "by_expected_status": {
+   "contradicted": {
+    "total": 9,
+    "correct": 8
+   },
+   "insufficient_evidence": {
+    "total": 2,
+    "correct": 2
+   },
+   "no_evidence_found": {
+    "total": 3,
+    "correct": 3
+   },
+   "out_of_scope": {
+    "total": 3,
+    "correct": 3
+   },
+   "partially_supported": {
+    "total": 3,
+    "correct": 3
+   },
+   "required_source_unavailable": {
+    "total": 5,
+    "correct": 5
+   },
+   "supported": {
+    "total": 12,
+    "correct": 12
+   }
+  },
+  "by_ground_truth": {
+   "deterministic": {
+    "total": 15,
+    "correct": 15
+   },
+   "expert_review": {
+    "total": 1,
+    "correct": 1
+   },
+   "mvp_behavior": {
+    "total": 9,
+    "correct": 9
+   },
+   "source_grounded": {
+    "total": 12,
+    "correct": 11
+   }
+  }
+ },
+ "claim_type_classification": {
+  "evaluated": 34,
+  "correct": 33,
+  "accuracy_pct": 97.1
+ },
+ "retrieval": {
+  "expected_source_cases": 25,
+  "expected_source_retrieved": 25,
+  "expected_source_success_pct": 100.0,
+  "expected_reference_cases": 12,
+  "expected_reference_found": 12,
+  "expected_reference_success_pct": 100.0,
+  "top_k": "not measurable: the API returns only the evidence used in the final result, not the ranked candidate list"
+ },
+ "extraction": {
+  "expected_claims": 7,
+  "found": 6,
+  "type_checked": 6,
+  "type_ok": 6,
+  "status_checked": 6,
+  "status_ok": 6,
+  "count_rules": 2,
+  "count_ok": 2,
+  "cases": 6,
+  "cases_all_ok": 5,
+  "expected_claims_found_pct": 85.7,
+  "claim_type_pct": 100.0,
+  "status_pct": 100.0
+ },
+ "api_validation": {
+  "evaluated": 5,
+  "correct": 5
+ },
+ "citation_verification": {
+  "evidence_items": 88,
+  "quran_items_checked_against_mushaf": 43,
+  "evidence_ok": 88,
+  "assessments": 104,
+  "spans": 87,
+  "spans_ok": 87,
+  "results_with_gate": 47,
+  "gate_all_checks_passed": 47,
+  "failures": []
+ },
+ "stability": {
+  "cases": 9,
+  "status_stable": 8,
+  "references_stable": 8,
+  "details": [
+   {
+    "case_id": "Q02",
+    "runs": 3,
+    "usable_runs": 3,
+    "statuses": [
+     "contradicted",
+     "contradicted",
+     "contradicted"
+    ],
+    "status_stable": true,
+    "references_stable": true,
+    "extraction_stable": null
+   },
+   {
+    "case_id": "Q04",
+    "runs": 3,
+    "usable_runs": 3,
+    "statuses": [
+     "partially_supported",
+     "partially_supported",
+     "partially_supported"
+    ],
+    "status_stable": true,
+    "references_stable": true,
+    "extraction_stable": null
+   },
+   {
+    "case_id": "T01",
+    "runs": 3,
+    "usable_runs": 3,
+    "statuses": [
+     "supported",
+     "supported",
+     "supported"
+    ],
+    "status_stable": true,
+    "references_stable": true,
+    "extraction_stable": null
+   },
+   {
+    "case_id": "T02",
+    "runs": 3,
+    "usable_runs": 3,
+    "statuses": [
+     "insufficient_evidence",
+     "insufficient_evidence",
+     "insufficient_evidence"
+    ],
+    "status_stable": true,
+    "references_stable": false,
+    "extraction_stable": null
+   },
+   {
+    "case_id": "A01",
+    "runs": 3,
+    "usable_runs": 3,
+    "statuses": [
+     "supported",
+     "supported",
+     "supported"
+    ],
+    "status_stable": true,
+    "references_stable": true,
+    "extraction_stable": null
+   },
+   {
+    "case_id": "A03",
+    "runs": 3,
+    "usable_runs": 2,
+    "statuses": [
+     "partially_supported",
+     "supported"
+    ],
+    "status_stable": false,
+    "references_stable": true,
+    "extraction_stable": null
+   },
+   {
+    "case_id": "H04",
+    "runs": 3,
+    "usable_runs": 3,
+    "statuses": [
+     "required_source_unavailable",
+     "required_source_unavailable",
+     "required_source_unavailable"
+    ],
+    "status_stable": true,
+    "references_stable": true,
+    "extraction_stable": null
+   },
+   {
+    "case_id": "I02",
+    "runs": 3,
+    "usable_runs": 3,
+    "statuses": [
+     "no_evidence_found",
+     "no_evidence_found",
+     "no_evidence_found"
+    ],
+    "status_stable": true,
+    "references_stable": true,
+    "extraction_stable": null
+   },
+   {
+    "case_id": "E01",
+    "runs": 3,
+    "usable_runs": 3,
+    "statuses": [
+     "('required_source_unavailable', 'supported')",
+     "('required_source_unavailable', 'supported')",
+     "('required_source_unavailable', 'supported')"
+    ],
+    "status_stable": true,
+    "references_stable": true,
+    "extraction_stable": false
+   }
+  ]
+ },
+ "external_provider_failures": {
+  "count": 1,
+  "cases": [
+   "O01"
+  ]
+ }
+}

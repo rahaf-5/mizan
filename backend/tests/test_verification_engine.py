@@ -641,6 +641,61 @@ async def test_partial_asbab_comes_from_substantive_components():
     assert o.status == VerificationStatus.PARTIALLY_SUPPORTED
 
 
+async def test_part_of_the_claim_omitted_by_the_analysis_is_not_established_never_supported():
+    """Evaluation A03 (run 3): the analysis returned only «في الأنصار» and silently dropped
+    «وكان ذلك في السنة الأولى من الهجرة»; the claim must not become `supported`."""
+    claim = (
+        "نزل قوله تعالى «إن الصفا والمروة من شعائر الله» في الأنصار، "
+        "وكان ذلك في السنة الأولى من الهجرة"
+    )
+
+    def judge(label, source):
+        return (
+            (AnalysisRelation.SUPPORTS, "أنزلت هذه الآية في الأنصار")
+            if "واحدي" in source
+            else (AnalysisRelation.INSUFFICIENT, None)
+        )
+
+    o = await run(
+        claim,
+        ScriptedLLM(
+            cls(ClaimType.ASBAB_NUZUL, ClaimType.QURAN),
+            analysis_for(judge, "في الأنصار", ClaimType.ASBAB_NUZUL),
+        ),
+    )
+    assert o.status == VerificationStatus.PARTIALLY_SUPPORTED
+    missing = [c for c in o.analysis.components if c.text == "وكان ذلك في السنة الأولى من الهجرة"]
+    assert len(missing) == 1
+    assert missing[0].role.value == "substantive"
+    assert missing[0].outcome == ComponentOutcome.NOT_ESTABLISHED
+    assert missing[0].evidence_ids == []
+    assert_traceable(o)
+
+
+def test_uncovered_parts_ignore_framing_words_and_punctuation():
+    from app.domain.verification import ClaimComponent
+    from app.pipeline.verification import uncovered_parts
+
+    def comp(text):
+        return ClaimComponent(
+            component_id="x", text=text, kind=ComponentKind.STATEMENT, claim_type=ClaimType.TAFSIR
+        )
+
+    claim = "معنى قوله تعالى «لا تأخذه سنة ولا نوم» أن الله لا يغضب على عباده"
+    # Only framing words («معنى قوله تعالى») are left uncovered -> nothing to add.
+    assert (
+        uncovered_parts(claim, [comp("لا تأخذه سنة ولا نوم"), comp("أن الله لا يغضب على عباده")])
+        == []
+    )
+    # A real assertion left out is returned verbatim.
+    assert uncovered_parts(claim, [comp("لا تأخذه سنة ولا نوم")]) == ["أن الله لا يغضب على عباده"]
+    # Fewer than 3 content words are not treated as a separate assertion.
+    assert (
+        uncovered_parts("نزل قوله تعالى «قل هو الله أحد» في الأنصار", [comp("قل هو الله أحد")])
+        == []
+    )
+
+
 async def test_contradicted_anchor_still_makes_the_claim_contradicted():
     def judge(label, source):
         return (

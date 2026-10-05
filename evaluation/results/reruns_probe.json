@@ -1,0 +1,12 @@
+{
+  "note": "Targeted re-runs after the main run (2026-10-05, before the fix), recorded by hand from the browser-pane console output. Status/error code only. They do not replace run 1 in metrics.json.",
+  "runs": [
+    {"case_id": "A06", "run": 1, "kind": "system_error", "error_code": "llm_invalid_response"},
+    {"case_id": "A06", "run": 2, "status": "contradicted", "components": [["quran_quote", "quran", "supported"], ["statement", "asbab_nuzul", "contradicted"]]},
+    {"case_id": "A06", "run": 3, "status": "insufficient_evidence", "components": [["quran_quote", "quran", "supported"], ["statement", "asbab_nuzul", "insufficient"]]},
+    {"case_id": "O01", "run": 1, "kind": "out_of_scope"},
+    {"case_id": "E02", "run": 1, "extracted": ["أن الله مع الصابرين"]},
+    {"case_id": "E02", "run": 2, "extracted": ["إن الله مع الصابرين"]},
+    {"case_id": "E02", "run": 3, "extracted": ["قال الله تعالى: إن الله مع الصابرين"]}
+  ]
+}

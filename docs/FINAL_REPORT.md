@@ -42,10 +42,14 @@ Hadith/Dorar: unavailable by policy → `required_source_unavailable` (never cal
 
 ## 3. Verification results
 
-- **Automated (final tree):** backend **370 passed**; ruff + format clean; contract snapshot up to
-  date; frontend **98 passed**; typecheck + lint clean; production build OK.
+- **Automated (final tree):** backend **372 passed**; ruff + format clean; contract snapshot up to
+  date; frontend **113 passed**; typecheck + lint clean; production build OK.
 - **Real smoke (Gemini + Quranpedia):** `smoke_verification` **15/15, Dorar calls 0** on `92b11b1`
   (run on the developer's Mac). Earlier: extraction 4/4, retrieval 9/9.
+- **Final evaluation (2026-10-05):** 49 text cases through the real API — status accuracy
+  36/37 (97.3 %, 1 provider 429 excluded), extraction 6/7 claims, expected source 25/25,
+  citations 88/88 traceable, gate 47/47; one real bug found by repeated runs and fixed. Full
+  report: `docs/EVALUATION_REPORT.md`, data and results: `evaluation/`.
 - **UI review:** the production build ran on the real Next.js server and was driven in Chromium
   through Quick Check, Full Content (extract → edit → delete → confirm → results), evidence,
   conflict grouping, limitations, hadith-unavailable, system error + retry, and alternative
@@ -86,7 +90,7 @@ Hadith/Dorar: unavailable by policy → `required_source_unavailable` (never cal
 | 7 | Source validation | `docs/SOURCE_VALIDATION.md` | complete |
 | 8 | Integration record | `docs/INTEGRATION_TODO.md` | complete |
 | 9 | Testing & 16-case matrix | `docs/TESTING.md` | complete |
-| 10 | Automated tests | `backend/tests/`, `frontend/tests/` | complete (370 + 98) |
+| 10 | Automated tests | `backend/tests/`, `frontend/tests/` | complete (372 + 113) |
 | 11 | Check scripts | `scripts/check.sh`, `scripts/smoke-all.sh` | complete |
 | 12 | Demo script | `docs/DEMO.md` | complete |
 | 13 | Screenshots (input/guidance/error/empty) | `docs/screenshots/` | complete |

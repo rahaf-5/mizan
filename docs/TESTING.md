@@ -13,11 +13,11 @@ Two layers:
 
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit/integration | `cd backend && pytest -q` | **370 passed** |
+| Backend unit/integration | `cd backend && pytest -q` | **372 passed** |
 | Backend lint/format | `ruff check . && ruff format --check .` | clean |
 | Shared contracts | `python -m app.domain.contracts_export --check` | snapshot up to date |
 | Real API response shapes | `pytest tests/test_api_samples.py` + frontend `tests/unit/api-samples.test.ts` | every field the UI reads exists in responses produced by the real FastAPI app |
-| Frontend tests (vitest + Testing Library) | `cd frontend && npm test` | **98 passed** (11 files) |
+| Frontend tests (vitest + Testing Library) | `cd frontend && npm test` | **113 passed** (14 files) |
 | Frontend typecheck / lint | `npm run typecheck && npm run lint` | clean |
 | Frontend production build | `npm run build` | success (7 routes) |
 | All of the above + hygiene | `./scripts/check.sh` | see FINAL_REPORT |
@@ -114,3 +114,7 @@ cd backend && source .venv/bin/activate
 ```
 
 Then, with backend and frontend running, walk through `docs/DEMO.md`.
+
+## Final evaluation
+
+End-to-end evaluation on 49 text cases through the real API (expected vs actual, metrics, stability): `docs/EVALUATION_REPORT.md`; dataset, runner, scorer and results in `evaluation/`.

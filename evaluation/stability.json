@@ -1,0 +1,2 @@
+{"note": "Cases re-run to measure stability (same input, independent runs). Chosen to cover Quran (deterministic), tafsir, asbab and hadith routing while limiting Gemini usage.",
+ "repeats": {"Q02": 3, "Q04": 3, "T01": 3, "T02": 3, "A01": 3, "A03": 3, "H04": 3, "I02": 3, "E01": 3}}
