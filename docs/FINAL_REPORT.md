@@ -18,7 +18,7 @@ sources and explains each result.
 | 7 Results & explainability | ✅ | `pipeline/explanation.py`, `result_builder.py`, `features/results/*` |
 | 8 Alternative wording (re-verified) | ✅ | `pipeline/alternative_wording.py`, `/api/v1/alternative-wording`, `AlternativeWordingPanel` |
 | 9 Error handling & end-to-end integration | ✅ | `api/v1/verify.py`, `lib/verify`, `useVerificationRuns`, Quick Check + `/full-content/results` |
-| 10 Testing | ✅ automated (342 BE + 85 FE); 16 sensitive cases mapped | `docs/TESTING.md` |
+| 10 Testing | ✅ automated (365 BE + 85 FE); 16 sensitive cases mapped | `docs/TESTING.md` |
 
 Sources: Quran — Quranpedia Mushaf 1 (official dump, SHA-256); Tafsir al-Muyassar (book 2012),
 Ibn Kathir (136), Asbab al-Wahidi (2919), Al-Muharrar (460) — official live API. Hadith/Dorar:
@@ -45,16 +45,18 @@ unavailable by policy → `required_source_unavailable` (never called, no gradin
 
 ## 3. Verification results (real, not simulated)
 
-- Automated: backend **342 passed**, ruff + format clean, contract snapshot up to date; frontend
+- Automated: backend **365 passed**, ruff + format clean, contract snapshot up to date; frontend
   **85 passed**, typecheck + lint clean, production build OK (fresh build), bundle hygiene OK.
 - Real smoke history: Task 4 4/4; Task 5a 9/9 (Dorar 0); Task 5b first run 11/13 (both failures
-  fixed in `7379966` with regression tests). See `docs/TESTING.md`.
+  fixed in `7379966` with regression tests); 15-case run on `8b9a67f` 14/15 (Dorar 0) —
+  `injection_fabricated` fixed with a source-boundary rule; rerun pending. See `docs/TESTING.md`.
 
 ## 4. Genuine blockers / open items
 
 1. **Real smoke rerun required on the developer machine.** The development cloud and the local
    sandbox VM cannot reach `api.quranpedia.net` or `generativelanguage.googleapis.com` (egress
-   policy). Run `python -m app.cli.smoke_verification` → expected `15/15`, `Dorar calls: 0`.
+   policy). Last run 14/15; after the source-boundary fix run `python -m app.cli.smoke_verification` →
+   expected `15/15`, `Dorar calls: 0`.
    Results screenshots must be captured during that run (`docs/DEMO.md`).
 2. **Hadith verification is unavailable** until Dorar provides official per-hadith ids/URLs,
    single-record retrieval and written display/caching permission (`docs/SOURCE_VALIDATION.md`).
@@ -76,7 +78,7 @@ unavailable by policy → `required_source_unavailable` (never called, no gradin
 | 8 | Source validation & approved source decisions | `docs/SOURCE_VALIDATION.md`, `docs/dumps-validation-2026-10-04.txt` | complete | — |
 | 9 | Integration requirements record | `docs/INTEGRATION_TODO.md` | complete | — |
 | 10 | Testing strategy, 16-case matrix, results | `docs/TESTING.md` | complete | — |
-| 11 | Automated test suites | `backend/tests/`, `frontend/tests/` | complete (342 + 85 passing) | — |
+| 11 | Automated test suites | `backend/tests/`, `frontend/tests/` | complete (365 + 85 passing) | — |
 | 12 | One-command check script | `scripts/check.sh` | complete | — |
 | 13 | Real smoke CLIs | `backend/app/cli/smoke_*.py` | complete | — |
 | 14 | Real smoke rerun (15 cases) | output of `smoke_verification` | **incomplete** | needs the developer machine (network) |
