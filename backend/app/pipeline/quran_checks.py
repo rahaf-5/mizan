@@ -231,8 +231,14 @@ class QuranVerifier:
                     )
         elif best[0] >= MIN_QUOTE_WORDS and best[3] is not None:
             n, qi, si, stream = best
-            supported = " ".join(words[qi : qi + n])
-            unsupported = " ".join(words[:qi] + words[qi + n :])
+            # Both parts are the user's own wording: verbatim slices of the quote (the match
+            # itself is unchanged — it is computed on the normalised words above).
+            supported = qtext[qtoks[qi].start : qtoks[qi + n - 1].end].strip()
+            before = qtext[: qtoks[qi].start].strip(_EDGE_PUNCT + " ")
+            after = qtext[qtoks[qi + n - 1].end :].strip(_EDGE_PUNCT + " ")
+            unsupported = " … ".join(p for p in (before, after) if p) or " ".join(
+                words[:qi] + words[qi + n :]
+            )
             for ev_id, part in _per_evidence(stream[si : si + n]).items():
                 matched[ev_id] = part
                 assessments.append(

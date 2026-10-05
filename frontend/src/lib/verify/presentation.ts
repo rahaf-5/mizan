@@ -135,3 +135,62 @@ export function evidenceQuote(ev: Evidence, assessments: EvidenceAssessment[]): 
   }
   return { text: ev.text, cited: false };
 }
+
+// ---------------------------------------------------------------- partially supported
+
+const EDGE = /^[\s«»"“”.,،:؛;!؟?()\-]+|[\s«»"“”.,،:؛;!؟?()\-]+$/g;
+const clean = (s: string) => s.replace(EDGE, "");
+const ws = (s: string) => s.replace(/\s+/g, " ").trim();
+/** The part must be the user's own wording: an exact substring of the claim (whitespace aside). */
+const inClaim = (part: string, claim: string) => !!clean(part) && ws(claim).includes(ws(clean(part)));
+
+/**
+ * For `partially_supported` only: which part of the claim the evidence supports and which part
+ * it did not establish — taken ONLY from the verification result:
+ *   • claim components (verbatim spans of the claim) with their analysed outcome, and
+ *   • `supported_part` / `unsupported_part` of a partially_supports assessment, used only when
+ *     both occur in the user's claim text.
+ * Returns null when the result does not identify the two parts safely (nothing is guessed).
+ */
+export function partialBreakdown(outcome: VerificationOutcome): { supported: string[]; unproven: string[]; sources: string[] } | null {
+  if (outcome.status !== "partially_supported") return null;
+  const { components, assessments } = outcome.analysis;
+  const byEv = new Map(outcome.evidence.map((e) => [e.evidence_id, e]));
+  const supported: string[] = [];
+  const unproven: string[] = [];
+  const sources: string[] = [];
+  const addSources = (cid: string) => {
+    for (const a of assessments)
+      if (a.component_id === cid && (a.relationship === "supports" || a.relationship === "partially_supports")) {
+        const ev = byEv.get(a.evidence_id);
+        if (ev) sources.push(sourceAt(ev));
+      }
+  };
+  for (const c of components.filter((x) => x.role === "substantive")) {
+    if (c.outcome === "supported") {
+      supported.push(clean(c.text));
+      addSources(c.component_id);
+    } else if (c.outcome === "partially_supported") {
+      const a = assessments.find(
+        (x) =>
+          x.component_id === c.component_id &&
+          x.relationship === "partially_supports" &&
+          x.supported_part &&
+          x.unsupported_part &&
+          inClaim(x.supported_part, outcome.confirmed_claim_text) &&
+          x.unsupported_part.split(" … ").every((p) => inClaim(p, outcome.confirmed_claim_text)),
+      );
+      if (!a) return null;
+      supported.push(clean(a.supported_part!));
+      unproven.push(...a.unsupported_part!.split(" … ").map(clean));
+      addSources(c.component_id);
+    } else if (c.outcome === "insufficient" || c.outcome === "not_established") {
+      unproven.push(clean(c.text));
+    } else {
+      return null; // contradicted / conflicting parts are not "partial" — use the general wording
+    }
+  }
+  const uniq = (xs: string[]) => [...new Set(xs.filter(Boolean))];
+  const out = { supported: uniq(supported), unproven: uniq(unproven), sources: uniq(sources) };
+  return out.supported.length && out.unproven.length ? out : null;
+}

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { getDictionary } from "@/i18n";
 import { formatNumber } from "@/lib/format";
-import { evidencePreview, explainResult } from "@/lib/verify/presentation";
+import { evidencePreview, explainResult, partialBreakdown } from "@/lib/verify/presentation";
 import { canOfferAlternative } from "@/lib/verify/report";
 import type { AlternativeWording, ClaimRun, Evidence, VerificationOutcome } from "@/lib/verify/types";
 import { AlternativeWordingPanel } from "./AlternativeWordingPanel";
@@ -49,6 +49,34 @@ function conflictGroups(outcome: VerificationOutcome): { group: ConflictGroup; i
   return (["supports", "contradicts", "other"] as const)
     .map((group) => ({ group, items: outcome.evidence.filter((ev) => groupOf(ev) === group) }))
     .filter((g) => g.items.length > 0);
+}
+
+/** partially_supported: the supported part and the unproven part, from the result itself. */
+function PartialWhy({ parts }: { parts: NonNullable<ReturnType<typeof partialBreakdown>> }) {
+  const list = (items: string[]) => (
+    <ul className="space-y-1">
+      {items.map((x) => (
+        <li key={x} dir="auto">
+          «{x}»
+        </li>
+      ))}
+    </ul>
+  );
+  return (
+    <div className="space-y-3">
+      <div className="rounded-xl border border-[var(--color-success-border)] bg-[var(--color-success-soft)] p-3" data-part="supported">
+        <p className="text-sm font-semibold">
+          {t.partial.supported} <span aria-hidden="true">✓</span>
+        </p>
+        {list(parts.supported)}
+      </div>
+      <div className="rounded-xl border border-[var(--color-warning-border)] bg-[var(--color-warning-soft)] p-3" data-part="unproven">
+        <p className="text-sm font-semibold">{t.partial.unproven}</p>
+        {list(parts.unproven)}
+      </div>
+      {parts.sources.length ? <p className="text-sm text-[var(--color-muted)]">{t.partial.sources(parts.sources.join("، "))}</p> : null}
+    </div>
+  );
 }
 
 /** Level 2: short evidence preview + one button; level 3 (on demand): evidence details. */
@@ -141,7 +169,8 @@ export function ClaimResultCard({
     const o = run.outcome;
     if (o.kind === "verification") {
       badge = <StatusBadge kind={o.status} />;
-      why = explainResult(o).map((line) => <p key={line}>{line}</p>);
+      const parts = partialBreakdown(o);
+      why = parts ? <PartialWhy parts={parts} /> : explainResult(o).map((line) => <p key={line}>{line}</p>);
       what = (
         <>
           <p>{t.whatToDo[o.status]}</p>

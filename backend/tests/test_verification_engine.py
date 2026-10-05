@@ -251,7 +251,9 @@ async def test_partial_quote_is_partially_supported():
     )
     assert o.status == VerificationStatus.PARTIALLY_SUPPORTED
     [a] = o.analysis.assessments
-    assert a.supported_part and a.unsupported_part
+    # Both parts are the user's own words (verbatim), not normalised matching keys.
+    assert a.supported_part == "إن الصفا والمروة من شعائر الله"
+    assert a.unsupported_part == "والصبر مفتاح الفرج"
 
 
 async def test_ayah_name_claim_is_insufficient():

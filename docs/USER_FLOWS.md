@@ -115,3 +115,14 @@ and verbatim cited spans. A component that is the whole claim is referred to as 
 
 The raw analysis rationale is never shown. The heading changed from «لماذا وضعه ميزان هنا؟» to
 «لماذا هذه النتيجة؟» (product decision).
+
+## Partially supported (2026-10-05)
+
+For `partially_supported` only, «لماذا هذه النتيجة؟» shows two labelled blocks — «الجزء المدعوم ✓»
+and «الجزء الذي لم يثبت» — plus «بحسب: …» (the supporting sources). The parts come only from the
+verification result (`partialBreakdown`): substantive claim components (verbatim claim spans) by
+their outcome, or the `supported_part` / `unsupported_part` of a partially_supports assessment,
+shown only when both are the user's exact words. Otherwise the general explanation is shown.
+The backend now returns the partial-quote parts as verbatim slices of the user's quote (the
+match itself is unchanged). «ماذا تفعل؟»: «احتفظ بالجزء المدعوم، وعدّل أو احذف الجزء الذي لم
+تثبته المصادر قبل النشر.»

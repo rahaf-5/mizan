@@ -179,6 +179,35 @@ describe("Full Content results", () => {
     expect(card.textContent).not.toMatch(/المؤلف|غير مذكور لدى المزوّد|تحليل آلي|مطابقة آلية|قوة الدليل/);
   });
 
+  it("partially supported: «لماذا هذه النتيجة؟» shows the supported part and the unproven part", async () => {
+    const claimText = "قال تعالى: «إن الله مع الصابرين والمتقين والمحسنين»";
+    const base = contradicted("p2", claimText);
+    const partial = {
+      ...base,
+      status: "partially_supported" as const,
+      result_group: "needs_revision" as const,
+      verified_reference: null,
+      analysis: {
+        ...base.analysis,
+        components: [{ component_id: "q1", text: "إن الله مع الصابرين والمتقين والمحسنين", kind: "quran_quote" as const, role: "substantive" as const, claim_type: "quran" as const, outcome: "partially_supported" as const, evidence_ids: [QURAN_EVIDENCE.evidence_id], verified_location: [], detail: null }],
+        assessments: [{ ...base.analysis.assessments[0], component_id: "q1", relationship: "partially_supports" as const, supported_part: "إن الله مع الصابرين", unsupported_part: "والمتقين والمحسنين" }],
+      },
+    };
+    serve({ p2: partial });
+    setup([claim("p2", claimText)]);
+    const card = (await screen.findByText("مدعوم جزئيًا")).closest("li") as HTMLElement;
+    const sup = card.querySelector('[data-part="supported"]') as HTMLElement;
+    const unp = card.querySelector('[data-part="unproven"]') as HTMLElement;
+    expect(within(sup).getByText("الجزء المدعوم", { exact: false })).toBeInTheDocument();
+    expect(within(sup).getByText("«إن الله مع الصابرين»")).toBeInTheDocument();
+    expect(within(unp).getByText("الجزء الذي لم يثبت")).toBeInTheDocument();
+    expect(within(unp).getByText("«والمتقين والمحسنين»")).toBeInTheDocument();
+    expect(within(card).getByText("احتفظ بالجزء المدعوم، وعدّل أو احذف الجزء الذي لم تثبته المصادر قبل النشر.")).toBeInTheDocument();
+    // Progressive disclosure unchanged: evidence still behind the button.
+    expect(card.querySelector("[data-evidence-id]")).toBeNull();
+    expect(within(card).getByRole("button", { name: "عرض الأدلة والتفاصيل" })).toBeInTheDocument();
+  });
+
   it("no evidence used → no empty evidence section and no details button", async () => {
     serve({ c4: noEvidence });
     setup([claim("c4", noEvidence.confirmed_claim_text)]);
