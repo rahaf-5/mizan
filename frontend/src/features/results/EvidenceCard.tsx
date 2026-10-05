@@ -1,5 +1,7 @@
 import { getDictionary } from "@/i18n";
+import { evidenceIndicators, explainAssessment } from "@/lib/verify/presentation";
 import type { ClaimComponent, Evidence, EvidenceAssessment } from "@/lib/verify/types";
+import { IndicatorList } from "./IndicatorList";
 
 const t = getDictionary();
 const e = t.results.evidence;
@@ -36,48 +38,33 @@ export function EvidenceCard({
         </blockquote>
       </section>
 
-      {assessments.map((a, i) => {
-        const comp = components.find((c) => c.component_id === a.component_id);
-        return (
-          <section key={`${a.component_id}-${i}`} className="space-y-2 rounded-xl border border-dashed border-[var(--color-border-strong)] p-3">
-            <p className="text-sm">
-              <span className="font-bold">{e.relation}: </span>
-              {e.relationship[a.relationship]}
-              {comp ? <span className="text-[var(--color-muted)]"> — {e.relationFor(comp.text)}</span> : null}
-            </p>
-            {/* Only verbatim source text is ever presented as a quote from the source. A
-                normalised matching key (e.g. for an ayah match) is not shown here — the
-                full source text is displayed above. */}
-            {a.evidence_span && evidence.text.includes(a.evidence_span) ? (
-              <div className="space-y-1">
-                <p className="text-sm font-bold text-[var(--color-muted)]">{e.citedSpan}</p>
-                <blockquote dir="rtl" className="rounded-lg bg-[var(--color-surface)] p-2 leading-7">
-                  «{a.evidence_span}»
-                </blockquote>
-              </div>
-            ) : null}
-            {a.supported_part ? <p className="text-sm">{e.supportedPart} {a.supported_part}</p> : null}
-            {a.unsupported_part ? <p className="text-sm">{e.unsupportedPart} {a.unsupported_part}</p> : null}
-            <div className="rounded-lg bg-[var(--color-brand-soft)] p-2.5">
-              <p className="text-sm font-bold">{e.mizanExplanation}</p>
-              <p className="text-sm">{a.rationale}</p>
-              <p className="pt-1 text-xs text-[var(--color-muted)]">
-                {a.assessed_by === "llm_analysis" ? e.llmNote : e.ruleNote}
-              </p>
+      {assessments.map((a, i) => (
+        <section key={`${a.component_id}-${i}`} className="space-y-2 rounded-xl border border-dashed border-[var(--color-border-strong)] p-3">
+          <div className="rounded-lg bg-[var(--color-brand-soft)] p-2.5">
+            <p className="text-sm font-bold">{e.mizanExplanation}</p>
+            <p className="text-sm leading-7">{explainAssessment(a, evidence, components)}</p>
+          </div>
+          {/* Only verbatim source text is ever presented as a quote from the source. A
+              normalised matching key (e.g. for an ayah match) is not shown here — the
+              full source text is displayed above. */}
+          {a.evidence_span && evidence.text.includes(a.evidence_span) ? (
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-[var(--color-muted)]">{e.citedSpan}</p>
+              <blockquote dir="rtl" className="rounded-lg bg-[var(--color-surface)] p-2 leading-7">
+                «{a.evidence_span}»
+              </blockquote>
             </div>
-            {a.strength.observations.length ? (
-              <details className="text-sm">
-                <summary className="cursor-pointer font-medium">{e.strength}</summary>
-                <ul className="list-disc space-y-0.5 ps-6 pt-1">
-                  {a.strength.observations.map((o) => (
-                    <li key={o.signal}>{o.basis}</li>
-                  ))}
-                </ul>
-              </details>
-            ) : null}
-          </section>
-        );
-      })}
+          ) : null}
+          {a.supported_part ? <p className="text-sm">{e.supportedPart} {a.supported_part}</p> : null}
+          {a.unsupported_part ? <p className="text-sm">{e.unsupportedPart} {a.unsupported_part}</p> : null}
+          {evidenceIndicators(a).length ? (
+            <div className="space-y-1 text-sm">
+              <p className="font-bold">{e.indicatorsTitle}</p>
+              <IndicatorList items={evidenceIndicators(a)} />
+            </div>
+          ) : null}
+        </section>
+      ))}
 
       <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
         <dt className="font-bold">{e.reference}</dt>

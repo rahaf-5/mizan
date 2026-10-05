@@ -172,6 +172,8 @@ export const ar = {
     anchorNote: "سياق: الآية المشار إليها في الادعاء",
     verifiedLocation: "الموضع الموثّق:",
     verifiedReferenceTitle: "الموضع الموثّق في المصحف",
+    evidenceSummaryTitle: "الأدلة التي اعتمد عليها ميزان",
+    indicatorsTitle: "مؤشرات التحقق",
     verifiedReferenceNote: "من سجل المصدر المعتمد؛ لم يُغيَّر نص ادعائك.",
     limitationsTitle: "حدود هذه النتيجة",
     conflictGroups: {
@@ -190,20 +192,10 @@ export const ar = {
     evidence: {
       sourceText: "النص من المصدر", // spec
       citedSpan: "المقطع الذي استند إليه ميزان",
+      indicatorsTitle: "مؤشرات التحقق لهذا الدليل",
       mizanExplanation: "شرح ميزان", // spec
-      llmNote: "تحليل آلي مقيّد بنص المصدر أعلاه — وليس جزءًا من المصدر.",
-      ruleNote: "مطابقة آلية حرفية مع نص المصدر.",
-      relation: "علاقة الدليل بالادعاء",
-      relationFor: (part: string) => `بالنسبة إلى: «${part}»`,
-      relationship: {
-        supports: "يدعم",
-        partially_supports: "يدعم جزئيًا",
-        contradicts: "يخالف",
-        insufficient: "مرتبط لكنه غير كافٍ",
-      },
       supportedPart: "الجزء المثبت:",
       unsupportedPart: "الجزء غير المثبت:",
-      strength: "قوة الدليل (مؤشرات من خطوات التحقق، وليست درجة رقمية)",
       source: "المصدر",
       provider: "المزوّد",
       reference: "المرجع",

@@ -132,11 +132,14 @@ describe("Full Content results", () => {
     const card = document.querySelector(`[data-evidence-id="${QURAN_EVIDENCE.evidence_id}"]`) as HTMLElement;
     const sourceRegion = within(card).getByRole("region", { name: "النص من المصدر" });
     expect(within(sourceRegion).getByText(QURAN_EVIDENCE.text)).toBeInTheDocument();
-    // The explanation is not inside the source-text region.
-    expect(within(sourceRegion).queryByText(/النص موجود في سورة البقرة/)).toBeNull();
+    // Mizan's explanation is outside the source-text region and built from the record.
+    expect(within(sourceRegion).queryByText(/لا يطابق المصحف/)).toBeNull();
     expect(within(card).getByText("شرح ميزان")).toBeInTheDocument();
-    expect(within(card).getByText(/النص موجود في سورة البقرة/)).toBeInTheDocument();
-    expect(within(card).getByText("مطابقة آلية حرفية مع نص المصدر.")).toBeInTheDocument();
+    expect(within(card).getByText("مؤشرات التحقق لهذا الدليل")).toBeInTheDocument();
+    expect(within(card).getByText("النص منقول كما هو من سجل المصدر الرسمي.")).toBeInTheDocument();
+    // The raw analysis rationale is never shown (it may be LLM-written, even in English).
+    expect(within(card).queryByText(/النص موجود في سورة البقرة/)).toBeNull();
+    expect(within(card).getByText("سورة آل عمران» لا يطابق المصحف؛ الموضع الموثّق للنص: سورة البقرة، الآية 158.", { exact: false })).toBeInTheDocument();
     // The fixture's span is a normalised matching key, not verbatim source text → never shown as a quote.
     expect(within(card).queryByText("المقطع الذي استند إليه ميزان")).toBeNull();
     expect(within(card).queryByText(/ان الصفا والمروه/)).toBeNull();
@@ -181,7 +184,8 @@ describe("Full Content results", () => {
     const card = document.querySelector(`[data-evidence-id="${TAFSIR_EVIDENCE.evidence_id}"]`) as HTMLElement;
     expect(within(card).getByText("تفسير")).toBeInTheDocument();
     expect(within(card).getByText(TAFSIR_EVIDENCE.metadata.provider_author as string)).toBeInTheDocument();
-    expect(within(card).getByText("تحليل آلي مقيّد بنص المصدر أعلاه — وليس جزءًا من المصدر.")).toBeInTheDocument();
+    // Technical wording and raw analysis text are never shown to the user.
+    expect(document.body.textContent).not.toMatch(/تحليل آلي|مطابقة آلية|قوة الدليل/);
   });
 
   it("alternative wording: a VERIFIED proposal can be adopted and replaces the claim and its result", async () => {

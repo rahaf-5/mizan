@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { getDictionary } from "@/i18n";
 import { formatNumber } from "@/lib/format";
+import { evidenceSummary, verificationIndicators } from "@/lib/verify/presentation";
 import { canOfferAlternative } from "@/lib/verify/report";
 import type { AlternativeWording, ClaimRun, Evidence, VerificationOutcome } from "@/lib/verify/types";
 import { AlternativeWordingPanel } from "./AlternativeWordingPanel";
 import { EvidenceCard } from "./EvidenceCard";
+import { IndicatorList } from "./IndicatorList";
 import { StatusBadge } from "./StatusBadge";
 
 const t = getDictionary().results;
@@ -55,6 +57,8 @@ function VerificationDetails({ outcome }: { outcome: VerificationOutcome }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const { components, assessments, related_unverified_addresses: related } = outcome.analysis;
+  const summary = evidenceSummary(outcome);
+  const indicators = verificationIndicators(outcome);
   const card = (ev: Evidence) => (
     <EvidenceCard
       key={ev.evidence_id}
@@ -103,6 +107,24 @@ function VerificationDetails({ outcome }: { outcome: VerificationOutcome }) {
               <li key={l}>{l}</li>
             ))}
           </ul>
+        </Block>
+      ) : null}
+
+      {summary.length ? (
+        <Block title={t.evidenceSummaryTitle}>
+          <ul className="list-disc space-y-1 ps-6">
+            {summary.map((s) => (
+              <li key={s.evidenceId}>
+                <span className="font-bold">{s.source}:</span> {s.text}
+              </li>
+            ))}
+          </ul>
+        </Block>
+      ) : null}
+
+      {indicators.length ? (
+        <Block title={t.indicatorsTitle}>
+          <IndicatorList items={indicators} />
         </Block>
       ) : null}
 
