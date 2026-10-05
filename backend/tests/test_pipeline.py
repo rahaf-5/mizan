@@ -20,8 +20,10 @@ from app.domain.routing import SourceRoute, SourceRoutingPlan
 from app.domain.trusted_sources import TrustedSourceId
 from app.domain.validation import FinalValidationResult
 from app.domain.verification import AnalysisResult, StatusDetermination
-from app.pipeline import contracts, stubs
-from app.pipeline.orchestrator import PipelineStages, VerificationPipeline, build_stub_pipeline
+from app.pipeline import contracts
+from app.pipeline.orchestrator import PipelineStages, VerificationPipeline
+from tests.support import stubs
+from tests.support.stubs import build_stub_pipeline
 
 
 def confirmed_claim(**kw) -> Claim:

@@ -26,9 +26,7 @@ from app.domain.errors import LLMRateLimitedError
 from app.domain.results import OutOfScopeOutcome, RequiredSourceUnavailableOutcome
 from app.domain.routing import SourceRoutingPlan
 from app.domain.trusted_sources import TrustedSourceId as T
-from app.llm.fake import FakeLLMProvider
 from app.llm.schemas import AyahHintDraft, ClassificationSuggestion
-from app.pipeline import stubs
 from app.pipeline.classification import LlmClaimClassifier, hadith_signal
 from app.pipeline.orchestrator import PipelineStages, VerificationPipeline
 from app.pipeline.retrieval import TrustedSourceRetriever
@@ -38,6 +36,8 @@ from app.sources.quran_index import QuranDataMissingError
 from app.sources.quranpedia import QuranpediaAdapter
 from app.sources.registry import AdapterRegistry
 from tests.quran_fixture import gid, make_index
+from tests.support import stubs
+from tests.support.fake_llm import FakeLLMProvider
 from tests.test_quranpedia_adapter import RESPONSES
 
 INDEX = make_index()

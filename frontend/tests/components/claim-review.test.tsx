@@ -7,7 +7,8 @@ import type { ReviewClaim } from "@/lib/claims/types";
 import { useInputSession } from "@/lib/input/InputSessionProvider";
 import { jsonResponse, renderWithSession } from "../helpers";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 const SOURCE = "قراءة سورة الكهف يوم الجمعة واجبة، وهي سبب لمغفرة الذنوب، أنصحكم جميعًا بقراءتها.";
 const A: ReviewClaim = {
@@ -144,7 +145,7 @@ describe("Claim Review", () => {
     expect(manual).toMatchObject({ text: "الصلاة عماد الدين.", selected: true, extracted_claim_text: null });
   });
 
-  it("explicit confirmation shows the prepared claims; verification has not started", async () => {
+  it("explicit confirmation goes through the gate, then opens the results page", async () => {
     const user = userEvent.setup();
     fetchSpy.mockResolvedValue(confirmedResponse([
       { claim_id: "a", confirmed_claim_text: A.text, user_confirmation_status: "confirmed" },
@@ -153,9 +154,10 @@ describe("Claim Review", () => {
     setup();
     expect(fetchSpy).not.toHaveBeenCalled(); // nothing is sent before the click
     await user.click(screen.getByRole("button", { name: "تحقّق من الادعاءات المحددة" }));
-    const status = await screen.findByText("تم تأكيد 2 من الادعاءات وتجهيزها للتحقق");
-    expect(status.closest("[role=status]")).toHaveTextContent("لم يبدأ أي تحقق بعد");
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    await screen.findByText("تم تأكيد 2 من الادعاءات");
+    expect(push).toHaveBeenCalledWith("/full-content/results");
+    expect(screen.getByRole("link", { name: "عرض نتائج التحقق" })).toHaveAttribute("href", "/full-content/results");
+    expect(fetchSpy).toHaveBeenCalledTimes(1); // only the confirmation gate; verification runs on the results page
     expect(probe().confirmation.confirmedClaims).toHaveLength(2);
     await user.click(screen.getByRole("button", { name: "العودة إلى المراجعة" }));
     expect(screen.getAllByRole("article")).toHaveLength(2);

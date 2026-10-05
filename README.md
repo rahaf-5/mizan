@@ -5,145 +5,129 @@ The approved product specification (`MIZAN_PRODUCT_SPEC.md`, in the Mizan projec
 
 > **Claim First. Evidence Second. Judgment Last.** — الادعاء أولًا، الدليل ثانيًا، والنتيجة أخيرًا.
 
-**Status:** Tasks 1–2 done; Task 3 (image OCR) removed from MVP scope; **Task 4 (Claim Extraction +
-Claim Review) implemented**. Full Content text → LLM-assisted claim extraction → Claim Review →
-explicit confirmation → confirmed claims prepared for the future verification pipeline. No
-verification, retrieval or verdicts yet.
+## Status — MVP feature-complete (Tasks 1–10)
+
+| Area | State |
+|---|---|
+| Quick Check (one claim → confirm → verify → result) | ✅ real backend |
+| Full Content Check (text → extract → review → confirm → verify → report) | ✅ real backend |
+| Trusted sources: Quran (Mushaf 1), Tafsir al-Muyassar (2012), Ibn Kathir (136), Asbab al-Wahidi (2919), Al-Muharrar (460) — Quranpedia | ✅ connected |
+| Hadith (Dorar al-Sunniyah) | ⛔ unavailable by policy → `required_source_unavailable` (never a verdict, never an invented grading) |
+| Results & explainability (statuses, why, what to do, evidence cards, sources, links) | ✅ |
+| Alternative wording (proposed, fully re-verified, adoptable only if verified) | ✅ |
+| Image input / OCR | ❌ removed from MVP scope (2026-10-04) |
+
+Full reports: [`docs/FINAL_REPORT.md`](docs/FINAL_REPORT.md) · testing: [`docs/TESTING.md`](docs/TESTING.md) ·
+user flows: [`docs/USER_FLOWS.md`](docs/USER_FLOWS.md) · architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) ·
+demo script: [`docs/DEMO.md`](docs/DEMO.md).
 
 ## Repository layout
 
 ```
 mizan/
-├── backend/            FastAPI + Pydantic (Python ≥ 3.10)
+├── backend/            FastAPI + Pydantic v2 (Python ≥ 3.10)
 │   ├── app/
-│   │   ├── domain/     Typed domain models & approved enums (source of truth)
-│   │   ├── pipeline/   Stage contracts, stubs, orchestrator skeleton
-│   │   ├── sources/    Trusted-source adapter contract, allowlist registry, placeholders
+│   │   ├── domain/     Typed domain models, approved enums, Trusted Sources policy
+│   │   ├── pipeline/   Classification → routing → retrieval → verification → analysis →
+│   │   │               status → Final Validation Gate → result builder; alternative wording
+│   │   ├── sources/    Quranpedia adapter + Mushaf 1 index; Dorar adapter (not connected)
 │   │   ├── llm/        Provider abstraction + Gemini adapter + prompts (assistive only — never evidence)
-│   │   ├── api/v1/     HTTP API (health only, for now)
-│   │   ├── db/         SQLAlchemy engine/session (no tables yet)
-│   │   └── config.py   Environment configuration
-│   ├── migrations/     Alembic (no revisions yet)
-│   └── tests/
-├── frontend/           Next.js (App Router) + TypeScript + Tailwind, Arabic RTL
-│   ├── src/app/        routes: / · /quick-check · /full-content · /full-content/claims · /status
-│   ├── src/features/   quick-check/, full-content/ (text only), claim-review/
-│   ├── src/lib/input/  typed input contracts, validation, in-memory input session
-│   ├── src/lib/claims/ claim extraction/review contracts, API client, review helpers
-│   ├── src/i18n/       centralized UI strings (ar)
-│   └── tests/          unit/, components/ (jsdom), integration/
-├── contracts/          domain-contracts.json — shared enum snapshot (generated)
-├── docs/               ARCHITECTURE.md, INTEGRATION_TODO.md
-├── scripts/check.sh    Run all checks
-└── docker-compose.yml  Local PostgreSQL (pgvector-capable image)
+│   │   ├── api/v1/     health · claims/extract · claims/confirm · verify · alternative-wording
+│   │   └── cli/        sync_quran_dump · smoke_* (real end-to-end checks) · validate_sources
+│   └── tests/          pytest (support/ holds test-only fakes and stubs)
+├── frontend/           Next.js 16 (App Router) + React 19 + TypeScript + Tailwind 4, Arabic RTL
+│   ├── src/app/        / · /quick-check · /full-content · /full-content/claims · /full-content/results · /status
+│   ├── src/features/   quick-check/ · full-content/ · claim-review/ · results/
+│   ├── src/lib/        input/ · claims/ · verify/ (typed API clients and contracts)
+│   └── tests/          unit/ · components/ (jsdom) · fixtures/ (test-only) · integration/
+├── contracts/          domain-contracts.json — shared enum snapshot (generated, checked)
+├── docs/               ARCHITECTURE · USER_FLOWS · TESTING · FINAL_REPORT · DEMO · SOURCE_VALIDATION · INTEGRATION_TODO
+└── scripts/check.sh    Run every automated check
 ```
 
 ## Prerequisites
 
-- Python 3.10+ · Node.js 20.9+ (22 LTS recommended) · Docker (for local PostgreSQL)
+Python 3.10+ · Node.js 20.9+ (22 LTS recommended) · a Gemini Developer API key ·
+internet access to `api.quranpedia.net` and `generativelanguage.googleapis.com`.
+Docker/PostgreSQL is optional (only the health check reports it; no feature needs the DB).
 
-`backend/.venv`, `frontend/node_modules` and `.next` are not committed; create them on your
-machine with the steps below (they are platform-specific).
-
-## Setup
+## Setup & run
 
 ```bash
-# 1) Database
-cp .env.example .env               # choose a local password
-docker compose up -d db
-
-# 2) Backend
+# 1) Backend
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-cp .env.example .env               # set DATABASE_URL to match the root .env
+cp .env.example .env          # then set the three LLM lines below in backend/.env
+python -m app.cli.sync_quran_dump   # once: official Mushaf 1 dump, SHA-256 verified (git-ignored)
 uvicorn app.main:app --reload --port 8000
 
-# 3) Frontend (new terminal)
+# 2) Frontend (new terminal)
 cd frontend
 npm install
-cp .env.example .env.local
-npm run dev                        # http://localhost:3000
+cp .env.example .env.local    # NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+npm run dev                   # http://localhost:3000
 ```
 
-## LLM provider (claim extraction)
-
-Gemini Developer API is the current MVP adapter behind the provider-neutral LLM abstraction
-(`backend/app/llm/`). In `backend/.env`:
+`backend/.env` (never commit it; the key is never logged or returned by the API):
 
 ```
 LLM_PROVIDER=gemini
-GEMINI_API_KEY=<your key — plain ASCII, no quotes or invisible characters>
+GEMINI_API_KEY=<your key>
 GEMINI_MODEL=gemini-3.5-flash-lite
 ```
 
-Real-provider smoke test (sends only public sample sentences; never prints the key):
+Optional local database for the health page: `cp .env.example .env && docker compose up -d db`
+at the repo root, and set `DATABASE_URL` in `backend/.env`.
 
-```
-cd backend && python -m app.cli.smoke_claim_extraction
-```
+## Try it
 
-Trusted-source retrieval (Task 5a): sync the official Quran data once, then run the real
-retrieval smoke test (Gemini + official Quranpedia; no verdicts):
+1. Open http://localhost:3000 → **فحص سريع** → type
+   `قال تعالى في سورة آل عمران: «إن الصفا والمروة من شعائر الله»` → **تحقق من الادعاء**.
+   Expected: **يخالف الدليل** — the quote exists, but in سورة البقرة 158; open
+   «عرض الأدلة والمصادر» to see the verbatim ayah, reference and the Quranpedia record link, then
+   try **اقترح صياغة بديلة** (shown only if the new wording itself verifies).
+2. **فحص محتوى كامل** → paste a paragraph with several claims → **استخراج الادعاءات** → edit,
+   delete, deselect or add claims → **تحقّق من الادعاءات المحددة** → the report verifies only
+   the confirmed claims, one by one, with real progress.
+3. A hadith claim (e.g. `قال رسول الله ﷺ: «إنما الأعمال بالنيات»`) ends as
+   **المصدر المطلوب غير متاح حاليًا** — no verdict and no grading.
 
-    cd backend && source .venv/bin/activate
-    python -m app.cli.sync_quran_dump
-    python -m app.cli.smoke_retrieval
-    python -m app.cli.smoke_verification   # Task 5b: full verification (no UI)
+More scenarios: [`docs/DEMO.md`](docs/DEMO.md).
 
-If Gemini rejects requests, run the feature-isolation diagnostic (short public sentence only,
-never prints the key): `cd backend && python -m app.cli.diagnose_gemini`.
-
-LLM extraction is not religious verification, and LLM output can never create evidence,
-citations or gradings. Users must confirm claims before any verification.
-
-## Scope note: no image input / OCR in the MVP
-
-Image upload and OCR were removed from the MVP on 2026-10-04 (product-scope decision). No OCR
-provider, key or setting is used. The removed implementation remains in Git history
-(last version: commit `f08cf42`) for a possible future version.
-
-## Health checks
-
-| Check | How |
-|---|---|
-| Backend starts | `curl http://localhost:8000/api/v1/health/live` → `{"status":"ok"}` |
-| Config loads / DB reachable | `curl http://localhost:8000/api/v1/health` → `config_loaded: true`, `database.status` |
-| Frontend starts | open http://localhost:3000 |
-| Frontend → backend | open http://localhost:3000/status, or `cd frontend && npm run test:integration` (backend must be running) |
-
-`/api/v1/health` reports `degraded` until the database is reachable. Trusted sources report
-`disabled`/`not_connected`, and the LLM provider reports `not_configured` — expected at this stage.
-Health status is technical only and is never a verification result.
-
-## Tests & checks
+## Real end-to-end smoke tests (need the internet + the Gemini key)
 
 ```bash
-./scripts/check.sh          # everything below
-# backend
-cd backend && pytest && ruff check . && python -m app.domain.contracts_export --check
-# frontend
-cd frontend && npm test && npm run typecheck && npm run lint && npm run build
-# frontend -> backend connectivity (backend running)
-cd frontend && npm run test:integration
+cd backend && source .venv/bin/activate
+python -m app.cli.smoke_claim_extraction   # Task 4: extraction only
+python -m app.cli.smoke_retrieval          # Task 5a: retrieval/traceability (no verdicts)
+python -m app.cli.smoke_verification       # Task 5b+: 15 fixed claims through the full pipeline;
+                                           # must end "15/15" with "Dorar calls: 0"
+python -m app.cli.diagnose_gemini          # only if Gemini rejects requests
 ```
 
-Note: ESLint stays on v9 because `eslint-config-next` 16's bundled plugins do not yet support ESLint 10.
+## Automated checks
 
-If you intentionally change an approved enum (requires product approval), regenerate the shared
-snapshot: `cd backend && python -m app.domain.contracts_export`.
+```bash
+./scripts/check.sh      # backend pytest + ruff + format + contract snapshot; frontend tests,
+                        # typecheck, lint, build; bundle and test-code hygiene checks
+cd frontend && npm run test:integration   # frontend → running backend connectivity
+```
+
+ESLint stays on v9 because `eslint-config-next` 16's bundled plugins do not yet support ESLint 10.
+If an approved enum changes (requires product approval): `cd backend && python -m app.domain.contracts_export`.
 
 ## Non-negotiables enforced in code
 
-- Verification accepts only `ConfirmedClaim` (confirmed/edited, non-empty `confirmed_claim_text`, selected).
-- Six `VerificationStatus` values; `no_evidence_found` is not an `EvidenceRelationship`.
-- Out of Scope and system errors are separate outcome kinds — never verification statuses.
-- `Evidence` must be allowlisted, provider-consistent and traceable; hadith gradings must be attributed.
-- Evidence Analysis cannot reference evidence that was not assessed.
-- No final result from a `retry` gate outcome; abstain maps to an existing status.
-- LLM output types cannot carry Evidence, references, URLs, citations or gradings.
-- MVP input is text only (`InputType = text`); there is no OCR endpoint.
-
-## Open decisions
-
-See the Task 1 report / `docs/ARCHITECTURE.md` → "Open decisions".
+- No verification before confirmation: `/verify` accepts only `ConfirmedClaim`s produced by the
+  confirmation gate; the edited text is what is verified; deleted/deselected claims are never sent.
+- Trusted sources only (allowlist); no web search; LLM knowledge is never evidence; LLM output
+  types cannot carry evidence, references, URLs, citations or gradings.
+- Every evidence item: Evidence → Source → Provider → official address/record → reference/URL,
+  with a SHA-256 of the exact displayed text.
+- Six evidence statuses + structurally separate `out_of_scope`, `required_source_unavailable`
+  and `system_error` outcomes — technical failures never become evidentiary statuses.
+- Final Validation Gate (7 checks); integrity/technical failures fail closed after bounded
+  retries; abstain maps to an existing status; results never stronger than the evidence.
+- Alternative wording is re-verified through the full pipeline and offered only if verified.
+- No confidence scores; evidence strength is shown as signals only.

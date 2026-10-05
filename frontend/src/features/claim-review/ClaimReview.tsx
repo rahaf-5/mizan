@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { BackArrowIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
@@ -17,10 +18,11 @@ const t = getDictionary();
 
 /**
  * Claim Review (spec §3, §18). The user reviews, edits, deletes, (de)selects and adds
- * claims, then EXPLICITLY confirms. Confirmation goes through the backend domain gate and
- * returns claims prepared for the future verification pipeline. Nothing is verified here.
+ * claims, then EXPLICITLY confirms. Confirmation goes through the backend domain gate; only the
+ * returned confirmed claims (with the user's edits) are verified, on the results page.
  */
 export function ClaimReview() {
+  const router = useRouter();
   const { state, dispatch } = useInputSession();
   const [error, setError] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -61,10 +63,17 @@ export function ClaimReview() {
             </li>
           ))}
         </ol>
-        <p className="text-sm text-[var(--color-muted)]">{t.common.nextStepPending}</p>
-        <Button variant="secondary" onClick={() => dispatch({ type: "confirmation/clear" })}>
-          {t.claimReview.backToReview}
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/full-content/results"
+            className="inline-flex min-h-11 items-center rounded-xl bg-[var(--color-brand)] px-5 py-2.5 font-medium text-[var(--color-on-brand)]"
+          >
+            {t.claimReview.viewResults}
+          </Link>
+          <Button variant="secondary" onClick={() => dispatch({ type: "confirmation/clear" })}>
+            {t.claimReview.backToReview}
+          </Button>
+        </div>
       </Notice>
     );
   }
@@ -84,6 +93,7 @@ export function ClaimReview() {
     setConfirming(false);
     if (result.kind === "confirmed") {
       dispatch({ type: "confirmation/set", result: result.result });
+      router.push("/full-content/results");
     } else if (result.kind === "input_error" && result.code === "no_claims_selected") {
       setError(t.claimReview.errorNoneSelected);
     } else if (result.kind === "input_error" && result.code === "empty_claim_text") {

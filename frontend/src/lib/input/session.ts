@@ -1,5 +1,6 @@
 /** Pure reducer for the in-memory input session (drafts, claim review, confirmation). */
 import type { ConfirmationResult, ReviewClaim, ReviewSession } from "@/lib/claims/types";
+import type { ClaimRun } from "@/lib/verify/types";
 import type { PreparedSubmission } from "./types";
 
 export interface InputSessionState {
@@ -9,8 +10,10 @@ export interface InputSessionState {
   prepared: PreparedSubmission | null;
   /** Full Content: extracted claims under user review (session only). */
   review: ReviewSession | null;
-  /** Result of the explicit confirmation gate — ready for the future pipeline. */
+  /** Result of the explicit confirmation gate (Full Content). */
   confirmation: ConfirmationResult | null;
+  /** Verification report runs (in memory). `key` ties them to the confirmed claims. */
+  verification: { key: string; runs: ClaimRun[] } | null;
 }
 
 export const initialInputSession: InputSessionState = {
@@ -19,6 +22,7 @@ export const initialInputSession: InputSessionState = {
   prepared: null,
   review: null,
   confirmation: null,
+  verification: null,
 };
 
 export type InputSessionAction =
@@ -35,7 +39,10 @@ export type InputSessionAction =
   | { type: "review/delete"; id: string }
   | { type: "review/add"; claim: ReviewClaim }
   | { type: "confirmation/set"; result: ConfirmationResult }
-  | { type: "confirmation/clear" };
+  | { type: "confirmation/clear" }
+  | { type: "verification/set"; key: string; runs: ClaimRun[] }
+  | { type: "verification/updateAt"; key: string; index: number; run: ClaimRun }
+  | { type: "verification/clear" };
 
 function mapClaims(
   state: InputSessionState,
@@ -43,7 +50,12 @@ function mapClaims(
 ): InputSessionState {
   if (!state.review) return state;
   // Any change to the review invalidates a previous confirmation.
-  return { ...state, review: { ...state.review, claims: fn(state.review.claims) }, confirmation: null };
+  return {
+    ...state,
+    review: { ...state.review, claims: fn(state.review.claims) },
+    confirmation: null,
+    verification: null,
+  };
 }
 
 export function inputSessionReducer(
@@ -66,6 +78,7 @@ export function inputSessionReducer(
         ...state,
         review: { sourceText: action.sourceText, claims: action.claims },
         confirmation: null,
+        verification: null,
       };
     case "review/toggle":
       return mapClaims(state, (cs) => cs.map((c) => (c.id === action.id ? { ...c, selected: !c.selected } : c)));
@@ -80,6 +93,16 @@ export function inputSessionReducer(
     case "confirmation/set":
       return { ...state, confirmation: action.result };
     case "confirmation/clear":
-      return { ...state, confirmation: null };
+      return { ...state, confirmation: null, verification: null };
+    case "verification/set":
+      return { ...state, verification: { key: action.key, runs: action.runs } };
+    case "verification/updateAt": {
+      const v = state.verification;
+      if (!v || v.key !== action.key || !v.runs[action.index]) return state;
+      const runs = v.runs.map((r, i) => (i === action.index ? action.run : r));
+      return { ...state, verification: { key: v.key, runs } };
+    }
+    case "verification/clear":
+      return { ...state, verification: null };
   }
 }

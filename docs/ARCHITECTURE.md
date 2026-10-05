@@ -1,4 +1,4 @@
-# Mizan architecture (Task 1 foundation)
+# Mizan architecture (MVP)
 
 ## Pipeline (spec §11)
 
@@ -19,7 +19,7 @@ User Input → Claim Extraction → User Review & Confirmation → Claim Classif
 | Evidence Analysis | `EvidenceAnalyzer` | `VerificationFindings` → `AnalysisResult` | Task 5b (`pipeline/analysis.py`, deterministic) |
 | Verification Status | `StatusDeterminer` | → `StatusDetermination` (1 of 6) | Task 5b (deterministic rule table) |
 | Final Validation Gate | `FinalValidationGate` | → `FinalValidationResult` (pass/retry/abstain) | Task 5b (`pipeline/gate.py`) |
-| Final User Result | `ResultBuilder` | → `ClaimOutcome` | Task 7 |
+| Final User Result | `ResultBuilder` | → `ClaimOutcome` (status, result group, why, what to do, strength signals) | Task 7 (`pipeline/result_builder.py`, `pipeline/explanation.py`, deterministic) |
 
 `orchestrator.VerificationPipeline` wires the stages from Classification onwards. Extraction and
 confirmation are interactive (the user reviews claims in between), so they are driven by the API/UI.
@@ -60,7 +60,8 @@ Full Content text ─▶ POST /api/v1/claims/extract ─▶ LlmClaimExtractor �
 
 ## Per-claim outcomes
 
-A claim ends in exactly one of three structurally separate outcomes (`domain/results.py`):
+A claim ends in exactly one of four structurally separate outcomes (`domain/results.py`;
+`RequiredSourceUnavailableOutcome` was added in Task 5a):
 
 - `VerificationOutcome` — one of the six statuses, with analysis, a non-retry validation result, and
   the full traceable evidence records.
@@ -98,8 +99,9 @@ orchestrator — not a domain rule.
    - supported type, qualified sources searched successfully, no suitable evidence → `no_evidence_found`
    - relevant evidence found but not sufficient → `insufficient_evidence`
    - extensible with further explicit reasons (with approval).
-3. **Quranpedia / Dorar** remain unresolved integration requirements until addressed before
-   Task 5 (no invented APIs, endpoints, keys, scraping, caching or indexing rights).
+3. **Quranpedia / Dorar.** Quranpedia connected in Task 5a (official dump + official live API).
+   Dorar stays UNAVAILABLE by policy (no per-hadith id/URL from the official API, terms
+   unresolved; no scraping, no unofficial wrappers) → `required_source_unavailable`.
 
 4. **Image input / OCR removed from MVP scope (2026-10-04).** Full Content Check is text only.
    Task 3 closed as "removed from MVP scope". If OCR returns in a future version, OCR output must
@@ -110,10 +112,15 @@ orchestrator — not a domain rule.
    (`gemini-3.5-flash-lite`); the provider abstraction remains authoritative. Anthropic is not
    wired. LLM extraction is not religious verification; user confirmation is mandatory.
 
-## Open decisions
+## Decisions taken in Task 7 (previously open)
 
-1. **Evidence Strength levels.** Only signals are modelled; no levels/thresholds.
-2. **Status → result group mapping** (spec §12) is deferred to Task 7.
+1. **Evidence Strength:** shown as signals only (source suitability, directness, traceability,
+   completeness) — no levels, thresholds or numeric scores.
+2. **Status → result group** (spec §12): supported → «محتوى تم التحقق منه»; contradicted →
+   «لا تستخدم هذه الادعاءات بصيغتها الحالية»; partially_supported → «تحتاج مراجعة قبل النشر»;
+   insufficient_evidence / no_evidence_found / conflicting_evidence → «تحتاج مراجعة الأدلة».
+   The non-status outcomes get their own report sections (unavailable source / out of scope /
+   technical failure) and are never merged into an evidence group.
 
 
 ## Task 5a — Retrieval (2026-10-04)
@@ -154,3 +161,47 @@ orchestrator — not a domain rule.
   ABSTAIN only for a correctly completed, evidentially weak verification (same status).
 - **API:** `POST /api/v1/verify` (confirmed claims in, `FinalUserResult` out; system-error
   messages generic). Real smoke: `python -m app.cli.smoke_verification`.
+
+
+## Task 7 — Results & Explainability (2026-10-05)
+
+- `pipeline/explanation.py` + `result_builder.py` build the user-facing fields
+  **deterministically** from the validated analysis (no LLM call): `result_group`, a
+  claim-specific `why` (per component: what was established/contradicted and where, e.g. the real
+  ayah location), `what_to_do`, and per-assessment strength observations. `no_evidence_found`
+  always states that absence of evidence does not mean the claim is false. For tafsir/asbab
+  claims whose status is not supported, an anchor note explains that a correct ayah quote alone
+  does not prove the attributed meaning/occasion.
+- Frontend `features/results/`: `VerificationReport` (real per-claim progress "i of n",
+  summary counts, sections in spec order), `ClaimResultCard` (claim → status badge → why → what to
+  do → components → conflict note → evidence toggle → alternative wording), `EvidenceCard`
+  (verbatim SOURCE TEXT in its own labelled region, the cited span, then «شرح ميزان» marked as
+  automated analysis/literal matching and NOT part of the source; reference, provider, provider
+  author or «غير مذكور لدى المزوّد», asbab relation «غير محدد», link to the official record).
+
+## Task 8 — Alternative Wording (2026-10-05)
+
+- `POST /api/v1/alternative-wording {run_id, claim_id}`. Works only from the server-side stored
+  result of that run (`pipeline/result_store.py`, in-memory LRU 500) — never from client-supplied
+  evidence. Eligible: `partially_supported` / `contradicted` with at least one cited span.
+- Gemini proposes ONE wording from the component findings and verbatim excerpts (untrusted-data
+  boundary prompt). Empty/identical/over-long proposals are rejected. The proposal is then run
+  through the **full pipeline** as a new confirmed claim; `verified = true` only when that run is
+  `supported`. The UI shows/adopts only verified proposals; otherwise it shows the spec message
+  «لم يتمكن ميزان من التحقق من صياغة بديلة موثوقة…». Adoption replaces the claim text and its
+  result in the report.
+
+## Task 9 — Integration & Error Handling (2026-10-05)
+
+- Quick Check: submit = explicit confirmation → `POST /claims/confirm` (manual origin, exact text)
+  → `POST /verify` with the returned `ConfirmedClaim` → result card.
+- Full Content: extraction → review → `POST /claims/confirm` → `/full-content/results`, which
+  verifies `state.confirmation.confirmedClaims` only, ONE claim per request, sequentially, so the
+  progress shown is real. Results live in the in-memory session; editing the review or claim
+  clears them.
+- Errors: `/verify` validates input (1–50 claims, ≤1000 chars each → 413 `claim_too_long`,
+  duplicate ids → 422, no LLM → 503 `llm_not_configured`); system-error messages are generic.
+  The UI maps network errors, malformed responses and `system_error` outcomes to the technical
+  state («تعذّر إكمال التحقق» + reason + «إعادة التحقق») — never to an evidence status.
+- Test-only fakes/stubs live in `backend/tests/support/` and `frontend/tests/fixtures/`;
+  `scripts/check.sh` fails if application code references them.

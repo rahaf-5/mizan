@@ -17,10 +17,10 @@ from app.domain.errors import (
     LLMTimeoutError,
 )
 from app.domain.inputs import MAX_EXTRACTION_INPUT_CHARS
-from app.llm.fake import FakeLLMProvider
 from app.llm.schemas import ClaimExtractionDraft, ExtractedClaimDraft
 from app.main import create_app
 from app.pipeline import orchestrator
+from tests.support.fake_llm import FakeLLMProvider
 
 KAHF = "قراءة سورة الكهف يوم الجمعة واجبة، وهي سبب لمغفرة الذنوب، أنصحكم جميعًا بقراءتها."
 SECRET = "SECRET" + "q" * 33

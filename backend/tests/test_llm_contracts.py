@@ -12,8 +12,8 @@ from app.domain.evidence import Evidence
 from app.domain.retrieval import CandidateEvidence
 from app.llm import schemas
 from app.llm.base import LLMRequest
-from app.llm.fake import FakeLLMProvider
 from app.llm.schemas import TASK_OUTPUT_SCHEMAS, ClassificationSuggestion, LLMOutput, LLMTask
+from tests.support.fake_llm import FakeLLMProvider
 
 FORBIDDEN_TYPES = {Evidence, CandidateEvidence}
 FORBIDDEN_FIELD_NAMES = {

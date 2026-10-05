@@ -343,6 +343,58 @@ async def test_asbab_supported_relation_type_stays_unspecified():
         assert ev.metadata.relation_type.value == "unspecified"
 
 
+async def test_wrong_tafsir_meaning_is_contradicted_never_supported():
+    def judge(label, source):
+        if "الميسر" in source:
+            return AnalysisRelation.CONTRADICTS, "لا تأخذه سنة أي: نعاس"
+        return AnalysisRelation.INSUFFICIENT, None
+
+    o = await run(TAFSIR_CLAIM, ScriptedLLM(cls(ClaimType.TAFSIR), analysis_for(judge)))
+    assert o.status == VerificationStatus.CONTRADICTED
+    assert_traceable(o)
+
+
+async def test_wrong_asbab_event_is_contradicted_with_the_real_text_cited():
+    def judge(label, source):
+        if "واحدي" in source:
+            return AnalysisRelation.CONTRADICTS, "أنزلت هذه الآية في الأنصار"
+        return AnalysisRelation.INSUFFICIENT, None
+
+    claim = "نزل قوله تعالى «إن الصفا والمروة من شعائر الله» في غزوة بدر"
+    o = await run(
+        claim,
+        ScriptedLLM(
+            cls(ClaimType.ASBAB_NUZUL), analysis_for(judge, "في غزوة بدر", ClaimType.ASBAB_NUZUL)
+        ),
+    )
+    assert o.status == VerificationStatus.CONTRADICTED
+    cited = [a for a in o.analysis.assessments if a.relationship.value == "contradicts"]
+    assert cited
+    for a in cited:
+        ev = next(e for e in o.evidence if e.evidence_id == a.evidence_id)
+        assert a.evidence_span in ev.text  # the displayed span is real source text
+    assert_traceable(o)
+
+
+async def test_wrong_asbab_with_only_related_text_is_not_supported():
+    claim = "نزل قوله تعالى «إن الصفا والمروة من شعائر الله» في غزوة بدر"
+    o = await run(
+        claim,
+        ScriptedLLM(
+            cls(ClaimType.ASBAB_NUZUL),
+            analysis_for(
+                lambda *_: (AnalysisRelation.INSUFFICIENT, None),
+                "في غزوة بدر",
+                ClaimType.ASBAB_NUZUL,
+            ),
+        ),
+    )
+    assert o.status in {
+        VerificationStatus.INSUFFICIENT_EVIDENCE,
+        VerificationStatus.NO_EVIDENCE_FOUND,
+    }
+
+
 async def test_quran_plus_tafsir_claim_keeps_source_boundary():
     def judge(label, source):
         return (

@@ -157,22 +157,3 @@ class VerificationPipeline:
                     ),
                 )
             retry_count += 1
-
-
-def build_stub_pipeline(max_retries: int) -> VerificationPipeline:
-    """Pipeline wired with placeholder stages (Task 1)."""
-    from app.pipeline import stubs
-
-    return VerificationPipeline(
-        PipelineStages(
-            classifier=stubs.StubClaimClassifier(),
-            router=stubs.StubSourceRouter(),
-            retriever=stubs.StubHybridRetriever(),
-            verifier=stubs.StubEvidenceVerifier(),
-            analyzer=stubs.StubEvidenceAnalyzer(),
-            status=stubs.StubStatusDeterminer(),
-            gate=stubs.StubFinalValidationGate(),
-            builder=stubs.StubResultBuilder(),
-        ),
-        max_retries=max_retries,
-    )

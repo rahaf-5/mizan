@@ -8,29 +8,59 @@ import { Button } from "@/components/ui/Button";
 import { FieldError } from "@/components/ui/FieldError";
 import { Notice } from "@/components/ui/Notice";
 import { getDictionary } from "@/i18n";
+import { confirmClaims } from "@/lib/claims/client";
+import { newClaimId } from "@/lib/claims/review";
 import { useInputSession } from "@/lib/input/InputSessionProvider";
 import { prepareQuickCheckClaim } from "@/lib/input/submission";
 import { validateQuickCheck } from "@/lib/input/validation";
+import { VerificationReport } from "@/features/results/VerificationReport";
 
 const t = getDictionary();
 
 /**
- * Quick Check input. Submitting PREPARES the claim for the later
- * review/confirmation step (Task 4). It never runs verification.
+ * Quick Check (spec §2A): the user writes ONE claim (editable), submitting is the explicit
+ * confirmation — it goes through the backend confirmation gate — and only the confirmed claim
+ * is verified against the real backend.
  */
 export function QuickCheckForm() {
   const router = useRouter();
   const { state, dispatch } = useInputSession();
   const [error, setError] = useState<string | null>(null);
   const [suggestFull, setSuggestFull] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const fieldRef = useRef<HTMLTextAreaElement>(null);
   const ids = { field: useId(), hint: useId(), error: useId(), suggest: useId() };
 
   const prepared = state.prepared?.kind === "quick_check_claim" ? state.prepared : null;
 
-  const prepare = () => {
-    dispatch({ type: "prepared/set", submission: prepareQuickCheckClaim(state.quickCheckText) });
+  const prepare = async () => {
     setSuggestFull(false);
+    setConfirming(true);
+    const text = state.quickCheckText;
+    const res = await confirmClaims({
+      explicit_user_confirmation: true,
+      claims: [
+        {
+          claim_id: newClaimId(),
+          origin: "manual",
+          original_text: text,
+          extracted_claim_text: null,
+          text,
+          selected: true,
+          extraction_status: null,
+          provided_evidence: null,
+          provided_reference: null,
+        },
+      ],
+    });
+    setConfirming(false);
+    if (res.kind === "confirmed" && res.result.confirmedClaims.length === 1) {
+      dispatch({ type: "prepared/set", submission: prepareQuickCheckClaim(text, res.result.confirmedClaims[0]) });
+    } else if (res.kind === "input_error" && res.code === "empty_claim_text") {
+      setError(t.quickCheck.errorEmpty);
+    } else {
+      setError(t.quickCheck.confirmFailed);
+    }
   };
 
   const onSubmit = (e: FormEvent) => {
@@ -46,7 +76,7 @@ export function QuickCheckForm() {
       setSuggestFull(true);
       return;
     }
-    prepare();
+    void prepare();
   };
 
   const goToFullContent = () => {
@@ -55,17 +85,20 @@ export function QuickCheckForm() {
   };
 
   if (prepared) {
+    const claim = prepared.confirmedClaim;
     return (
-      <Notice tone="success" role="status" title={t.quickCheck.preparedTitle}>
-        <p className="text-sm text-[var(--color-muted)]">{t.quickCheck.preparedClaimLabel}</p>
-        <blockquote className="whitespace-pre-wrap rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 text-lg">
-          {prepared.extractionInput.text}
-        </blockquote>
-        <p className="text-sm text-[var(--color-muted)]">{t.common.nextStepPending}</p>
-        <Button variant="secondary" onClick={() => dispatch({ type: "prepared/clear" })}>
-          {t.common.edit}
+      <div className="space-y-5">
+        <VerificationReport runKey={`quick:${claim.claim_id}`} claims={[claim]} />
+        <Button
+          variant="secondary"
+          onClick={() => {
+            dispatch({ type: "verification/clear" });
+            dispatch({ type: "prepared/clear" });
+          }}
+        >
+          {t.quickCheck.editClaim}
         </Button>
-      </Notice>
+      </div>
     );
   }
 
@@ -111,7 +144,7 @@ export function QuickCheckForm() {
                 {t.quickCheck.multiGoFull}
                 <ForwardArrowIcon className="size-4" />
               </Button>
-              <Button variant="secondary" onClick={prepare}>
+              <Button variant="secondary" onClick={() => void prepare()}>
                 {t.quickCheck.multiContinue}
               </Button>
             </div>
@@ -120,9 +153,14 @@ export function QuickCheckForm() {
 
         {/* While the multi-claim guidance is shown, its two choices are the actions. */}
         {suggestFull ? null : (
-          <Button type="submit" className="w-full sm:w-auto">
-            {t.quickCheck.submit}
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" className="w-full sm:w-auto" disabled={confirming}>
+              {t.quickCheck.submit}
+            </Button>
+            <p role="status" className="text-[var(--color-muted)]">
+              {confirming ? t.quickCheck.confirming : null}
+            </p>
+          </div>
         )}
       </form>
     </Card>

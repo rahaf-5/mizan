@@ -11,12 +11,12 @@ import pytest
 from app.domain.enums import CheckMode, ExtractionStatus, UserConfirmationStatus
 from app.domain.errors import LLMRateLimitedError
 from app.domain.inputs import ExtractionInput
-from app.llm.fake import FakeLLMProvider
 from app.llm.prompts.claim_extraction import SYSTEM_PROMPT, build_prompt
 from app.llm.schemas import ClaimExtractionDraft, ExtractedClaimDraft
 from app.pipeline.arabic_text import normalize_for_matching
 from app.pipeline.claim_extraction import LlmClaimExtractor
 from app.pipeline.contracts import ClaimExtractor
+from tests.support.fake_llm import FakeLLMProvider
 
 KAHF = "قراءة سورة الكهف يوم الجمعة واجبة، وهي سبب لمغفرة الذنوب، أنصحكم جميعًا بقراءتها."
 

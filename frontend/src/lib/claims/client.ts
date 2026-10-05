@@ -6,7 +6,7 @@ export const CONFIRM_ENDPOINT = "/api/v1/claims/confirm";
 
 type Raw = { status: number; body: Record<string, unknown> | null } | null;
 
-async function postJson(path: string, payload: unknown, timeoutMs: number): Promise<Raw> {
+export async function postJson(path: string, payload: unknown, timeoutMs: number): Promise<Raw> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -30,7 +30,7 @@ async function postJson(path: string, payload: unknown, timeoutMs: number): Prom
   }
 }
 
-function failureOf(raw: NonNullable<Raw>): { kind: "failure"; code: string; retryable: boolean } | { kind: "input_error"; code: string } {
+export function failureOf(raw: NonNullable<Raw>): { kind: "failure"; code: string; retryable: boolean } | { kind: "input_error"; code: string } {
   const body = raw.body ?? {};
   if (body.kind === "input_error") return { kind: "input_error", code: String(body.code ?? "invalid") };
   const err = (body.error ?? {}) as { code?: string; retryable?: boolean };

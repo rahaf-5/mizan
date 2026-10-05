@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QuickCheckForm } from "@/features/quick-check/QuickCheckForm";
 import { useInputSession } from "@/lib/input/InputSessionProvider";
-import { renderWithSession } from "../helpers";
+import { finalResult, supported, systemError } from "../fixtures/outcomes";
+import { jsonResponse, renderWithSession } from "../helpers";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
@@ -18,15 +19,41 @@ function SessionProbe() {
 const probe = () => JSON.parse(screen.getByTestId("probe").textContent || "{}");
 
 let fetchSpy: ReturnType<typeof vi.fn>;
+let verifyOutcome: () => Response;
+const urls = () => fetchSpy.mock.calls.map(([u]) => String(u));
+const bodyOf = (suffix: string) =>
+  JSON.parse(String(fetchSpy.mock.calls.find(([u]) => String(u).endsWith(suffix))?.[1]?.body));
+
+/** Routes by URL like the real backend: confirmation gate echoes; verify returns the fixture. */
+const router = (url: string, init?: RequestInit) => {
+  const body = JSON.parse(String(init?.body ?? "{}"));
+  if (url.endsWith("/api/v1/claims/confirm")) {
+    const c = body.claims[0];
+    return Promise.resolve(
+      jsonResponse({
+        kind: "confirmed",
+        explicit_user_confirmation: true,
+        next_stage: "claim_classification",
+        confirmed_claims: [
+          { claim_id: c.claim_id, confirmed_claim_text: c.text.trim(), user_confirmation_status: "confirmed", claim_type: null, provided_evidence: null, provided_reference: null },
+        ],
+      }),
+    );
+  }
+  if (url.endsWith("/api/v1/verify")) return Promise.resolve(verifyOutcome());
+  return Promise.reject(new Error(`unexpected ${url}`));
+};
+
 beforeEach(() => {
   push.mockReset();
-  fetchSpy = vi.fn();
+  fetchSpy = vi.fn(router);
+  verifyOutcome = () => jsonResponse(finalResult(supported("x", SINGLE)));
   vi.stubGlobal("fetch", fetchSpy);
 });
 afterEach(() => {
   vi.unstubAllGlobals();
-  // Task 2 must never send a verification (or any) request.
-  expect(fetchSpy).not.toHaveBeenCalled();
+  // Only the confirmation gate and verification of the CONFIRMED claim may be called.
+  for (const u of urls()) expect(u).toMatch(/\/api\/v1\/(claims\/confirm|verify)$/);
 });
 
 const setup = () =>
@@ -69,22 +96,64 @@ describe("Quick Check", () => {
     expect(screen.getByRole("alert")).toBeEmptyDOMElement();
   });
 
-  it("prepares the claim exactly as entered, without verifying", async () => {
+  it("confirms the claim exactly as entered, then verifies only the confirmed claim", async () => {
     const user = userEvent.setup();
     setup();
     const typed = `  ${SINGLE}  `;
     await user.type(screen.getByRole("textbox", { name: "الادعاء" }), typed);
     await user.click(screen.getByRole("button", { name: "تحقق من الادعاء" }));
-    const { prepared } = probe();
-    expect(prepared.kind).toBe("quick_check_claim");
-    expect(prepared.next).toBe("claim_confirmation");
-    expect(prepared.extractionInput).toEqual({
-      mode: "quick_check",
-      input_type: "text",
-      text: typed,
-    });
-    expect(screen.getByRole("status")).toHaveTextContent("تم تجهيز الادعاء للمراجعة والتأكيد");
-    expect(screen.getByRole("status")).toHaveTextContent("لم يبدأ أي تحقق بعد");
+    expect(await screen.findByText("مدعوم بالأدلة")).toBeInTheDocument();
+    expect(urls()).toEqual([expect.stringMatching(/claims\/confirm$/), expect.stringMatching(/verify$/)]);
+    const confirm = bodyOf("/api/v1/claims/confirm");
+    expect(confirm.explicit_user_confirmation).toBe(true);
+    expect(confirm.claims).toHaveLength(1);
+    expect(confirm.claims[0]).toMatchObject({ origin: "manual", text: typed, selected: true });
+    const verify = bodyOf("/api/v1/verify");
+    expect(verify.claims).toHaveLength(1);
+    expect(verify.claims[0].confirmed_claim_text).toBe(SINGLE);
+    expect(verify.claims[0].claim_id).toBe(confirm.claims[0].claim_id);
+    expect(probe().prepared.kind).toBe("quick_check_claim");
+    expect(screen.getByText("لماذا وضعه ميزان هنا؟")).toBeInTheDocument();
+  });
+
+  it("shows a technical failure (not a verdict) and retries verification", async () => {
+    const user = userEvent.setup();
+    let calls = 0;
+    verifyOutcome = () => (++calls === 1 ? jsonResponse(finalResult(systemError)) : jsonResponse(finalResult(supported("x", SINGLE))));
+    setup();
+    await user.type(screen.getByRole("textbox", { name: "الادعاء" }), SINGLE);
+    await user.click(screen.getByRole("button", { name: "تحقق من الادعاء" }));
+    expect(await screen.findByText("تعذّر إكمال التحقق")).toBeInTheDocument();
+    expect(screen.queryByText("مدعوم بالأدلة")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "إعادة التحقق" }));
+    expect(await screen.findByText("مدعوم بالأدلة")).toBeInTheDocument();
+    expect(urls().filter((u) => u.endsWith("/verify"))).toHaveLength(2);
+  });
+
+  it("a network failure during verification is technical and retryable", async () => {
+    const user = userEvent.setup();
+    let calls = 0;
+    verifyOutcome = () => {
+      if (++calls === 1) throw new TypeError("offline");
+      return jsonResponse(finalResult(supported("x", SINGLE)));
+    };
+    setup();
+    await user.type(screen.getByRole("textbox", { name: "الادعاء" }), SINGLE);
+    await user.click(screen.getByRole("button", { name: "تحقق من الادعاء" }));
+    expect(await screen.findByText(/تعذّر الاتصال بالخادم/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "إعادة التحقق" }));
+    expect(await screen.findByText("مدعوم بالأدلة")).toBeInTheDocument();
+  });
+
+  it("a confirmation-gate failure is reported and nothing is verified", async () => {
+    const user = userEvent.setup();
+    fetchSpy.mockImplementation(() => Promise.resolve(jsonResponse({ kind: "error", error: { code: "x", retryable: true } }, 500)));
+    setup();
+    await user.type(screen.getByRole("textbox", { name: "الادعاء" }), SINGLE);
+    await user.click(screen.getByRole("button", { name: "تحقق من الادعاء" }));
+    expect(await screen.findByText("تعذّر تأكيد الادعاء بسبب مشكلة تقنية. حاول مرة أخرى.")).toBeInTheDocument();
+    expect(urls().some((u) => u.endsWith("/verify"))).toBe(false);
+    expect(probe().prepared).toBeNull();
   });
 
   it("keeps the claim when the user goes back to edit", async () => {
@@ -92,7 +161,8 @@ describe("Quick Check", () => {
     setup();
     await user.type(screen.getByRole("textbox", { name: "الادعاء" }), SINGLE);
     await user.click(screen.getByRole("button", { name: "تحقق من الادعاء" }));
-    await user.click(screen.getByRole("button", { name: "تعديل" }));
+    await screen.findByText("مدعوم بالأدلة");
+    await user.click(screen.getByRole("button", { name: "تعديل الادعاء" }));
     expect(screen.getByRole("textbox", { name: "الادعاء" })).toHaveValue(SINGLE);
   });
 
@@ -118,6 +188,6 @@ describe("Quick Check", () => {
     await user.type(screen.getByRole("textbox", { name: "الادعاء" }), `${SINGLE}{enter}سطر آخر هنا للتجربة`);
     await user.click(screen.getByRole("button", { name: "تحقق من الادعاء" }));
     await user.click(screen.getByRole("button", { name: "المتابعة كادعاء واحد" }));
-    expect(probe().prepared.kind).toBe("quick_check_claim");
+    await waitFor(() => expect(probe().prepared?.kind).toBe("quick_check_claim"));
   });
 });

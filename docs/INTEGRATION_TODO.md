@@ -1,7 +1,9 @@
 # Integration TODO — what must be provided before connecting real services
 
-Nothing below has been assumed or invented. Adapters are placeholders that raise
-`SourceNotConnectedError`; they advertise no supported retrieval methods.
+Nothing below has been assumed or invented. **Current state (2026-10-05):** Quranpedia is
+connected (Task 5a); Dorar is not connected by policy (its adapter raises
+`SourceNotConnectedError` and is never called). Checklists below are kept as the original
+requirements record; resolved answers are in `docs/SOURCE_VALIDATION.md`.
 
 ## Quranpedia (Task 5) — `backend/app/sources/quranpedia.py`
 
@@ -80,8 +82,10 @@ Implemented in `backend/app/llm/gemini.py` behind `LLMProvider`. Backend-only; k
       (`GEMINI_UNSUPPORTED_SCHEMA_KEYS`); the provider-neutral schema and Pydantic model keep the
       50-claim limit, so a response with more than 50 claims is rejected locally as
       `llm_invalid_response`. All other schema restrictions are still sent.
-- [ ] Real-provider smoke test (rerun after the maxItems fix): `cd backend && python -m app.cli.smoke_claim_extraction`
-      (the Cowork sandbox cannot reach generativelanguage.googleapis.com).
+- [x] Real-provider smoke test after the maxItems fix: `smoke_claim_extraction` 4/4 (2026-10-04,
+      developer machine).
+- [ ] Real `smoke_verification` rerun (15 cases, incl. 2 prompt-injection cases) on the developer
+      machine — the development cloud cannot reach Gemini or Quranpedia.
 
 ## OCR — REMOVED FROM MVP SCOPE (2026-10-04)
 

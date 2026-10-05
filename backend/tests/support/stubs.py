@@ -1,4 +1,4 @@
-"""Placeholder stage implementations.
+"""Test-only placeholder stages (never used by the application).
 
 Every stub raises StageNotImplementedError naming the task that will
 implement it. No verification logic is invented here.
@@ -59,3 +59,23 @@ class StubFinalValidationGate:
 class StubResultBuilder:
     async def build(self, claim, retrieval, analysis, determination, validation):  # type: ignore[no-untyped-def]
         raise _todo(PipelineStage.FINAL_USER_RESULT, "Task 7")
+
+
+from app.pipeline.orchestrator import PipelineStages, VerificationPipeline  # noqa: E402
+
+
+def build_stub_pipeline(max_retries: int) -> VerificationPipeline:
+    """Pipeline wired with placeholder stages (orchestration tests only)."""
+    return VerificationPipeline(
+        PipelineStages(
+            classifier=StubClaimClassifier(),
+            router=StubSourceRouter(),
+            retriever=StubHybridRetriever(),
+            verifier=StubEvidenceVerifier(),
+            analyzer=StubEvidenceAnalyzer(),
+            status=StubStatusDeterminer(),
+            gate=StubFinalValidationGate(),
+            builder=StubResultBuilder(),
+        ),
+        max_retries=max_retries,
+    )

@@ -1,4 +1,4 @@
-"""Dorar al-Sunniyah adapter — PLACEHOLDER (Task 5).
+"""Dorar al-Sunniyah adapter — NOT CONNECTED (product decision).
 
 Serves (allowlist): hadith data and muhaddith rulings.
 
@@ -24,9 +24,7 @@ from app.domain.evidence import Evidence
 from app.domain.trusted_sources import Provider, TrustedSourceId
 from app.sources.base import AdapterConnectionState, SourceHit, SourceQuery, TrustedSourceAdapter
 
-_NOT_CONNECTED = (
-    "Dorar al-Sunniyah integration is not connected yet (pending official API details; Task 5)"
-)
+_NOT_CONNECTED = "Dorar al-Sunniyah integration is not connected (required source unavailable)"
 
 
 class DorarAdapter(TrustedSourceAdapter):

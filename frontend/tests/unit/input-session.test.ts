@@ -6,7 +6,16 @@ import { prepareQuickCheckClaim } from "@/lib/input/submission";
 describe("prepared submissions mirror the backend ExtractionInput (text only)", () => {
   it("quick check keeps the claim exactly as entered", () => {
     const raw = "  قراءة سورة الكهف يوم الجمعة سبب في حصول نور بين الجمعتين.  ";
-    const s = prepareQuickCheckClaim(raw);
+    const confirmed = {
+      claim_id: "q1",
+      confirmed_claim_text: raw,
+      user_confirmation_status: "confirmed" as const,
+      claim_type: null,
+      provided_evidence: null,
+      provided_reference: null,
+    };
+    const s = prepareQuickCheckClaim(raw, confirmed);
+    expect(s.confirmedClaim).toBe(confirmed);
     expect(s.kind).toBe("quick_check_claim");
     expect(s.extractionInput).toEqual({ mode: "quick_check", input_type: "text", text: raw });
     expect(s.next).toBe("claim_confirmation");
@@ -21,6 +30,7 @@ describe("input session reducer", () => {
       "prepared",
       "quickCheckText",
       "review",
+      "verification",
     ]);
   });
 
