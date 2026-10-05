@@ -1,0 +1,39 @@
+# Render Blueprint — public demo deployment (two services, free plan).
+#   mizan-api : FastAPI backend. Downloads + SHA-256-verifies the official Mushaf 1 dump at start,
+#               calls Gemini (server-side only) and the official Quranpedia API. Dorar stays blocked.
+#   mizan-web : static Next.js export; the browser calls mizan-api directly.
+# Secrets are never in this file: values marked `sync: false` are entered in the Render dashboard.
+services:
+  - type: web
+    name: mizan-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install .
+    startCommand: python -m app.cli.sync_quran_dump && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health/live
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: APP_ENV
+        value: production
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
+      - key: GEMINI_THINKING_LEVEL
+        value: low
+      - key: GEMINI_API_KEY
+        sync: false # backend only — never in the frontend
+      - key: CORS_ORIGINS
+        sync: false # the public URL of mizan-web, e.g. https://mizan-web.onrender.com
+
+  - type: web
+    name: mizan-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && MIZAN_STATIC_EXPORT=1 npm run build
+    staticPublishPath: out
+    envVars:
+      - key: NEXT_PUBLIC_API_BASE_URL
+        sync: false # the public URL of mizan-api, e.g. https://mizan-api.onrender.com (no secret)

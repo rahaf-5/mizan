@@ -78,6 +78,7 @@ Two layers:
 | `7379966` | fixes: segment-cited spans; anchor/substantive roles | covered by automated regressions; **real rerun pending** |
 | `8b9a67f` (2026-10-05) | `smoke_verification`, 15 cases | **14/15**, Dorar calls 0 — `injection_fabricated` failed: Gemini suggested `hadith` because the quoted "ayah" contains «النبي», so the claim ended `required_source_unavailable` |
 | `92b11b1` (2026-10-05) | `smoke_verification`, 15 cases, after the source-boundary fix | **15/15, Dorar calls 0** (developer's Mac) |
+| `8fdc4e4` (2026-10-05) | `./scripts/smoke-all.sh` (sync + extraction + retrieval + verification), after the A03 fix | **all passed; 15/15, Dorar calls 0** (developer's Mac) |
 | final commit | presentation-only additions (`verified_reference`, `limitations`) | run `./scripts/smoke-all.sh` (all three smokes) before submission |
 
 ### Source-boundary rule (fix for `injection_fabricated`)

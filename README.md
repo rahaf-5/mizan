@@ -1,25 +1,90 @@
 # ميزان | Mizan — تحقّق قبل أن تنشر
 
-Arabic-first assistant for verifying **religious claims** against trusted, traceable evidence.
-The approved product specification (`MIZAN_PRODUCT_SPEC.md`, in the Mizan project) is the source of truth.
+**Live demo:** _LIVE_URL_ (see [Deployment](docs/DEPLOYMENT.md)) · **Evaluation:** [`submission/EVALUATION_SUMMARY.md`](submission/EVALUATION_SUMMARY.md) · **Submission pack:** [`submission/`](submission/)
 
-> **Claim First. Evidence Second. Judgment Last.** — الادعاء أولًا، الدليل ثانيًا، والنتيجة أخيرًا.
+> **Mizan is not an assistant that answers; it is a checker that refuses to judge without evidence.**
+> ميزان ليس مساعدًا يجيب؛ بل مدقق يرفض الحكم دون دليل.
 
-## Status — MVP feature-complete (Tasks 1–10)
+## What problem it solves
 
-| Area | State |
+Religious posts are shared every day with an ayah attributed to the wrong surah, words added to
+an ayah, or a tafsir / reason-of-revelation that the sources do not say. The person sharing it
+has no quick way to check **before publishing**. Search returns pages, not a judgment; a general
+chatbot answers from its own memory, with no record you can open and check.
+
+Mizan takes a claim or a whole text, splits it into checkable claims (you review and confirm
+them), checks each one **only** against an allowlist of trusted sources, and tells you in plain
+Arabic: the status, why, what to do before publishing, and the exact evidence with its source record.
+
+## Scope of this version
+
+| Mizan verifies | How |
 |---|---|
-| Quick Check (one claim → confirm → verify → result) | ✅ real backend |
-| Full Content Check (text → extract → review → confirm → verify → report) | ✅ real backend |
-| Trusted sources: Quran (Mushaf 1), Tafsir al-Muyassar (2012), Ibn Kathir (136), Asbab al-Wahidi (2919), Al-Muharrar (460) — Quranpedia | ✅ connected |
-| Hadith (Dorar al-Sunniyah) | ⛔ unavailable by policy → `required_source_unavailable` (never a verdict, never an invented grading) |
-| Results & explainability (statuses, why, what to do, verified Quran reference, limitations, evidence cards grouped for conflicts, sources, links) | ✅ |
-| Alternative wording (proposed, fully re-verified, adoptable only if verified) | ✅ |
-| Image input / OCR | ❌ removed from MVP scope (2026-10-04) |
+| Quran text and location (surah / ayah) | Deterministically against the official Quranpedia Mushaf 1 dump (6,236 ayahs, SHA-256 verified) — no LLM |
+| Tafsir claims about a specific ayah | Tafsir al-Muyassar, Tafsir Ibn Kathir (official Quranpedia API) |
+| Asbab al-nuzul claims about a specific ayah | al-Wahidi, al-Muharrar (official Quranpedia API) |
 
-Full reports: [`docs/FINAL_REPORT.md`](docs/FINAL_REPORT.md) · testing: [`docs/TESTING.md`](docs/TESTING.md) ·
-user flows: [`docs/USER_FLOWS.md`](docs/USER_FLOWS.md) · architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) ·
-demo script: [`docs/DEMO.md`](docs/DEMO.md).
+| Mizan says so explicitly — by design, not as a bug | Outcome |
+|---|---|
+| Part of the claim supported, part not | `partially_supported` (shows which part) |
+| Evidence exists but does not establish the claim / nothing found | `insufficient_evidence` / `no_evidence_found` |
+| Hadith (needs a hadith source; Dorar has no per-hadith record id/URL usable here) | `required_source_unavailable` — no verdict, no grading |
+| Fiqh rulings / fatwa, general or historical statements | `out_of_scope` |
+| Provider / technical failure | `system_error` — never turned into a verdict |
+
+Not in this MVP: image/OCR input, semantic (meaning-only) search, accounts/database. Details:
+[`submission/SCOPE.md`](submission/SCOPE.md).
+
+## How it works — where AI is used and where it is not allowed to decide
+
+```
+text ─► LLM: extract claims ─► YOU review & confirm ─► LLM: classify claim type ─► route to allowed sources
+     ─► retrieve records from the allowlist (Quranpedia)            ─► deterministic Quran checks (text, location)
+     ─► LLM: relate tafsir/asbab passages to parts of the claim, citing numbered segments;
+        Mizan copies the cited text from the source itself and checks it occurs verbatim
+     ─► deterministic status rules ─► Final Validation Gate (7 checks) ─► result + evidence
+```
+
+- **The LLM (Gemini, server-side) understands, splits and relates.** It never supplies evidence,
+  references, URLs or gradings — its output types cannot carry them.
+- **Trusted sources supply the evidence.** Each evidence item carries source, provider, official
+  record address, reference, URL and a SHA-256 of the exact text shown.
+- **Deterministic checks** decide everything that can be checked mechanically (ayah text and location,
+  verbatim spans, record integrity).
+- **The Final Validation Gate** blocks any result that is not backed by traceable evidence.
+- **Safe stop:** no source → `required_source_unavailable`; technical failure → `system_error`
+  after bounded retries; weak evidence → `insufficient_evidence`. Never a guess.
+
+More: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+## Evaluation (real numbers, with their context)
+
+49 text cases written by the team, run through the **real API** on 2026-10-05
+([report](docs/EVALUATION_REPORT.md) · [summary](submission/EVALUATION_SUMMARY.md)):
+
+- Status: **36 / 37** verify cases correct (97.3 %). One case hit Gemini's rate limit (HTTP 429)
+  and is reported separately as a provider failure. The one miss stopped safely as a system error;
+  **no wrong verdict** in the main run.
+- Citations: 88 / 88 evidence items traceable (allowlisted source, record URL, SHA-256);
+  43 / 43 Quran items identical to the Mushaf; 87 / 87 cited spans verbatim; 0 invented citations.
+- Retrieval: expected source 25 / 25, expected ayah 12 / 12. Extraction: 6 / 7 expected claims.
+- Repeated runs found one real bug (A03: an unproven detail came back `supported`); it was fixed,
+  covered by regression tests and re-run live.
+- Context: the dataset is team-built and small; tafsir/asbab expectations follow the source texts,
+  some accept more than one honest status; **no expert religious review has taken place yet.**
+
+### Verify our evaluation results without an API key
+
+The scorer is offline and deterministic; it recomputes every number from the recorded API
+responses. The Mushaf download is public (no key).
+
+```bash
+git clone <this repo> mizan && cd mizan/backend
+python3 -m venv .venv && source .venv/bin/activate && pip install -e .
+python -m app.cli.sync_quran_dump                              # official Mushaf 1, SHA-256 checked
+python ../evaluation/score_eval.py ../evaluation/results/raw.json
+git -C .. diff --stat evaluation/results                       # empty = identical to our results
+```
 
 ## Repository layout
 
@@ -41,8 +106,11 @@ mizan/
 │   ├── src/lib/        input/ · claims/ · verify/ (typed API clients and contracts)
 │   └── tests/          unit/ · components/ (jsdom) · fixtures/ (test-only) · integration/
 ├── contracts/          domain-contracts.json — shared enum snapshot (generated, checked)
-├── docs/               ARCHITECTURE · USER_FLOWS · TESTING · FINAL_REPORT · DEMO · SOURCE_VALIDATION · INTEGRATION_TODO
-└── scripts/check.sh    Run every automated check
+├── docs/               ARCHITECTURE · USER_FLOWS · TESTING · FINAL_REPORT · EVALUATION_REPORT · DEPLOYMENT · DEMO · SOURCE_VALIDATION
+├── evaluation/         Final evaluation: dataset, real-API runner, offline scorer, results
+├── submission/         Judge-facing pack: checklist, scope, sources, tools/licenses, evaluation, demo, presentation
+├── render.yaml         Public demo deployment (Render Blueprint)
+└── scripts/            check.sh (all automated checks) · smoke-all.sh (real end-to-end) · start-demo.command
 ```
 
 ## Prerequisites
@@ -101,7 +169,7 @@ More scenarios: [`docs/DEMO.md`](docs/DEMO.md).
 ## Real end-to-end smoke tests (need the internet + the Gemini key)
 
 ```bash
-./scripts/smoke-all.sh                     # all of the below, in order (last result: 15/15, Dorar 0)
+./scripts/smoke-all.sh                     # all of the below, in order (last result on 8fdc4e4: 15/15, Dorar 0)
 
 cd backend && source .venv/bin/activate
 python -m app.cli.smoke_claim_extraction   # Task 4: extraction only
@@ -142,3 +210,9 @@ Reasons: `docs/FINAL_REPORT.md` §4.
   retries; abstain maps to an existing status; results never stronger than the evidence.
 - Alternative wording is re-verified through the full pipeline and offered only if verified.
 - No confidence scores; evidence strength is shown as signals only.
+
+## Licenses and third-party services
+
+No open-source license has been chosen for Mizan's own code yet (all rights reserved until one is
+added). Third-party libraries, fonts, services and their terms: [`submission/TOOLS_AND_LICENSES.md`](submission/TOOLS_AND_LICENSES.md).
+Sources and how each is used: [`submission/SOURCES_AND_CONTENT.md`](submission/SOURCES_AND_CONTENT.md).

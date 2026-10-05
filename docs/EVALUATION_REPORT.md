@@ -114,6 +114,8 @@ A06 failed in 3 of 7 attempts overall (main run `verification_incomplete`; later
 
 **Provider failures (excluded from accuracy):** 2 × HTTP 429 `llm_rate_limited` in 67 main-run calls (O01, A03 run 2).
 
+**Final real smoke after the fix:** `./scripts/smoke-all.sh` on `8fdc4e4` (developer Mac) — all passed, `smoke_verification` 15/15, Dorar calls 0.
+
 ## 8. Stability (repeated runs)
 
 9 cases × 3 runs (stability.json). Status stable in 8 / 9 before the fix (A03 — bug 1); after the fix A03 is 3/3 `partially_supported`. Q02, Q04, T01, T02, A01, H04, I02 and E01 statuses were identical in every usable run. Evidence set varied for T02 (5 / 3 / 2 items, same status and same ayah) because the LLM cites different passages. E01 extraction wording varied (one run reworded both claims) but the claims, their types and statuses were identical.

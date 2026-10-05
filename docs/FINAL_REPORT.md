@@ -44,8 +44,9 @@ Hadith/Dorar: unavailable by policy → `required_source_unavailable` (never cal
 
 - **Automated (final tree):** backend **372 passed**; ruff + format clean; contract snapshot up to
   date; frontend **113 passed**; typecheck + lint clean; production build OK.
-- **Real smoke (Gemini + Quranpedia):** `smoke_verification` **15/15, Dorar calls 0** on `92b11b1`
-  (run on the developer's Mac). Earlier: extraction 4/4, retrieval 9/9.
+- **Real smoke (Gemini + Quranpedia):** `./scripts/smoke-all.sh` — all real smoke tests passed,
+  `smoke_verification` **15/15, Dorar calls 0** on `8fdc4e4` (after the A03 fix; run on the developer's Mac,
+  2026-10-05). Previously 15/15 on `92b11b1`. Earlier: extraction 4/4, retrieval 9/9.
 - **Final evaluation (2026-10-05):** 49 text cases through the real API — status accuracy
   36/37 (97.3 %, 1 provider 429 excluded), extraction 6/7 claims, expected source 25/25,
   citations 88/88 traceable, gate 47/47; one real bug found by repeated runs and fixed. Full
