@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { getDictionary } from "@/i18n";
 import { formatNumber } from "@/lib/format";
-import { evidenceSummary, verificationIndicators } from "@/lib/verify/presentation";
+import { evidenceSummary, explainResult, verificationIndicators } from "@/lib/verify/presentation";
 import { canOfferAlternative } from "@/lib/verify/report";
 import type { AlternativeWording, ClaimRun, Evidence, VerificationOutcome } from "@/lib/verify/types";
 import { AlternativeWordingPanel } from "./AlternativeWordingPanel";
@@ -212,7 +212,9 @@ export function ClaimResultCard({
         <>
           {run.adopted ? <Notice tone="success" role="status" title={t.alternative.adopted} /> : null}
           <Block title={t.whyTitle}>
-            <p>{o.why}</p>
+            {explainResult(o).map((line) => (
+              <p key={line}>{line}</p>
+            ))}
           </Block>
           <Block title={t.whatTitle}>
             <p>{o.what_to_do}</p>

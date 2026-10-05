@@ -52,7 +52,7 @@ report can never be shown for edited claims.
 3. **Sections** (only non-empty ones, in this order): محتوى تم التحقق منه · لا تستخدم هذه
    الادعاءات بصيغتها الحالية · تحتاج مراجعة قبل النشر · تحتاج مراجعة الأدلة · لا يمكن التحقق منها
    حاليًا · تعذّر التحقق بسبب مشكلة تقنية.
-4. **Claim card**: claim text → status badge (icon + text, never colour only) → «لماذا وضعه
+4. **Claim card**: claim text → status badge (icon + text, never colour only) → «لماذا هذه
    ميزان هنا؟» → «ماذا تفعل؟» → what Mizan checked in the claim (per component) → conflict note →
    «الموضع الموثّق في المصحف» (from the Quran record; the claim text is never rewritten) →
    «حدود هذه النتيجة» (e.g. a source without text for the ayah) →
@@ -89,3 +89,22 @@ report can never be shown for edited claims.
 RTL document (`dir="rtl"`, `lang="ar"`), `dir="auto"` for user text, labelled fields,
 `aria-invalid`/`aria-describedby` on errors, `role="status"`/`aria-live` for progress,
 `aria-expanded` on toggles, status conveyed by icon + text, mobile-first single column.
+
+## «لماذا هذه النتيجة؟» wording (2026-10-05)
+
+Built in `frontend/src/lib/verify/presentation.ts` (`explainResult`) only from the validated
+result: claim components (verbatim spans of the user's claim), relationships, evidence records
+and verbatim cited spans. A component that is the whole claim is referred to as «ما ورد في
+ادعائك» instead of being quoted back. Rules per status:
+
+- supported → what the source has that supports the claim (with the verbatim passage).
+- contradicted → what the claim says vs. what the source says («يذكر … خلاف ما ورد في ادعائك: «…»»);
+  for a wrong ayah location: the stated location vs. the documented one.
+- partially supported → the supported part and the part not established.
+- insufficient → which source/ayah was checked, and that it neither proves nor disproves the claim.
+- conflicting → which sources support and which oppose; no verdict forced.
+- no evidence → the spec sentence (absence of evidence is not falsehood).
+- required source unavailable → Mizan needs the hadith source, which is unavailable; no verdict.
+
+The raw analysis rationale is never shown. The heading changed from «لماذا وضعه ميزان هنا؟» to
+«لماذا هذه النتيجة؟» (product decision).

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { getDictionary } from "@/i18n";
 import { requestAlternative } from "@/lib/verify/client";
+import { explainResult } from "@/lib/verify/presentation";
 import type { AlternativeWording } from "@/lib/verify/types";
 
 const t = getDictionary().results.alternative;
@@ -63,10 +64,12 @@ export function AlternativeWordingPanel({
         <blockquote dir="auto" className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-3">
           {state.alt.proposed_text}
         </blockquote>
-        {state.alt.outcome?.kind === "verification" && state.alt.outcome.why ? (
+        {state.alt.outcome?.kind === "verification" && explainResult(state.alt.outcome).length ? (
           <div className="space-y-1 text-sm">
             <p className="font-bold">{t.whyLabel}</p>
-            <p>{state.alt.outcome.why}</p>
+            {explainResult(state.alt.outcome).map((line) => (
+              <p key={line}>{line}</p>
+            ))}
           </div>
         ) : null}
         <Button onClick={() => onAdopt(state.alt)}>{t.adopt}</Button>

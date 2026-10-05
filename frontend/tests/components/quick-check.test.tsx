@@ -113,7 +113,7 @@ describe("Quick Check", () => {
     expect(verify.claims[0].confirmed_claim_text).toBe(SINGLE);
     expect(verify.claims[0].claim_id).toBe(confirm.claims[0].claim_id);
     expect(probe().prepared.kind).toBe("quick_check_claim");
-    expect(screen.getByText("لماذا وضعه ميزان هنا؟")).toBeInTheDocument();
+    expect(screen.getByText("لماذا هذه النتيجة؟")).toBeInTheDocument();
   });
 
   it("shows a technical failure (not a verdict) and retries verification", async () => {
