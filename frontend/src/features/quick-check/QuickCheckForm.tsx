@@ -12,7 +12,8 @@ import { confirmClaims } from "@/lib/claims/client";
 import { newClaimId } from "@/lib/claims/review";
 import { useInputSession } from "@/lib/input/InputSessionProvider";
 import { prepareQuickCheckClaim } from "@/lib/input/submission";
-import { validateQuickCheck } from "@/lib/input/validation";
+import { isTooLongClaim, QUICK_CHECK_MAX_CHARS, validateQuickCheck } from "@/lib/input/validation";
+import { formatNumber } from "@/lib/format";
 import { VerificationReport } from "@/features/results/VerificationReport";
 
 const t = getDictionary();
@@ -35,8 +36,14 @@ export function QuickCheckForm() {
 
   const prepare = async () => {
     setSuggestFull(false);
-    setConfirming(true);
     const text = state.quickCheckText;
+    if (isTooLongClaim(text)) {
+      // An input problem, never a technical one: the backend gate enforces the same limit.
+      setError(t.quickCheck.errorTooLong(formatNumber(QUICK_CHECK_MAX_CHARS)));
+      fieldRef.current?.focus();
+      return;
+    }
+    setConfirming(true);
     const res = await confirmClaims({
       explicit_user_confirmation: true,
       claims: [
@@ -58,6 +65,8 @@ export function QuickCheckForm() {
       dispatch({ type: "prepared/set", submission: prepareQuickCheckClaim(text, res.result.confirmedClaims[0]) });
     } else if (res.kind === "input_error" && res.code === "empty_claim_text") {
       setError(t.quickCheck.errorEmpty);
+    } else if (res.kind === "input_error" || (res.kind === "failure" && res.code === "http_422")) {
+      setError(t.quickCheck.errorInvalid);
     } else {
       setError(t.quickCheck.confirmFailed);
     }
@@ -68,6 +77,11 @@ export function QuickCheckForm() {
     const result = validateQuickCheck(state.quickCheckText);
     if (result.status === "empty") {
       setError(t.quickCheck.errorEmpty);
+      fieldRef.current?.focus();
+      return;
+    }
+    if (result.status === "too_long") {
+      setError(t.quickCheck.errorTooLong(formatNumber(result.max)));
       fieldRef.current?.focus();
       return;
     }

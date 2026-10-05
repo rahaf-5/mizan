@@ -205,3 +205,18 @@ orchestrator — not a domain rule.
   state («تعذّر إكمال التحقق» + reason + «إعادة التحقق») — never to an evidence status.
 - Test-only fakes/stubs live in `backend/tests/support/` and `frontend/tests/fixtures/`;
   `scripts/check.sh` fails if application code references them.
+
+## Submission hardening (2026-10-05)
+
+- `VerificationOutcome.verified_reference`: the ayah location(s) the Quran record established
+  for the claim's Quran components, copied from the record's own `reference` (spec §3). The
+  user's text/reference is never rewritten.
+- `VerificationOutcome.limitations` (+ run-level union in `FinalUserResult.limitations`): facts
+  about the search, currently "an approved tafsir/asbab source searched successfully but has no
+  text for the anchor ayah". Never changes a status. Source *failures* still fail closed
+  (`system_error`), per the locked retry rule.
+- Presentation: evidence for `conflicting_evidence` is grouped by relationship; a cited span is
+  displayed as a source quote only if it is verbatim source text.
+- Contract: `contracts/api-samples.json` is generated from the real FastAPI app
+  (`backend/tests/test_api_samples.py`) and checked against the frontend's typed fixtures
+  (`frontend/tests/unit/api-samples.test.ts`).

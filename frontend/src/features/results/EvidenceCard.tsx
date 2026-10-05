@@ -45,7 +45,10 @@ export function EvidenceCard({
               {e.relationship[a.relationship]}
               {comp ? <span className="text-[var(--color-muted)]"> — {e.relationFor(comp.text)}</span> : null}
             </p>
-            {a.evidence_span ? (
+            {/* Only verbatim source text is ever presented as a quote from the source. A
+                normalised matching key (e.g. for an ayah match) is not shown here — the
+                full source text is displayed above. */}
+            {a.evidence_span && evidence.text.includes(a.evidence_span) ? (
               <div className="space-y-1">
                 <p className="text-sm font-bold text-[var(--color-muted)]">{e.citedSpan}</p>
                 <blockquote dir="rtl" className="rounded-lg bg-[var(--color-surface)] p-2 leading-7">

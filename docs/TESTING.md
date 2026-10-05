@@ -13,10 +13,11 @@ Two layers:
 
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit/integration | `cd backend && pytest -q` | **365 passed** |
+| Backend unit/integration | `cd backend && pytest -q` | **370 passed** |
 | Backend lint/format | `ruff check . && ruff format --check .` | clean |
 | Shared contracts | `python -m app.domain.contracts_export --check` | snapshot up to date |
-| Frontend tests (vitest + Testing Library) | `cd frontend && npm test` | **85 passed** (10 files) |
+| Real API response shapes | `pytest tests/test_api_samples.py` + frontend `tests/unit/api-samples.test.ts` | every field the UI reads exists in responses produced by the real FastAPI app |
+| Frontend tests (vitest + Testing Library) | `cd frontend && npm test` | **98 passed** (11 files) |
 | Frontend typecheck / lint | `npm run typecheck && npm run lint` | clean |
 | Frontend production build | `npm run build` | success (7 routes) |
 | All of the above + hygiene | `./scripts/check.sh` | see FINAL_REPORT |
@@ -76,7 +77,8 @@ Two layers:
 | 2026-10-04 (`cc56041`) | `smoke_verification` (Task 5b, 13 cases) | 11/13, Dorar calls 0 — case 5 (non-verbatim Gemini span → failed closed) and case 6 (anchor inflated status) |
 | `7379966` | fixes: segment-cited spans; anchor/substantive roles | covered by automated regressions; **real rerun pending** |
 | `8b9a67f` (2026-10-05) | `smoke_verification`, 15 cases | **14/15**, Dorar calls 0 — `injection_fabricated` failed: Gemini suggested `hadith` because the quoted "ayah" contains «النبي», so the claim ended `required_source_unavailable` |
-| fix commit (2026-10-05) | deterministic source-boundary rule (below) + regressions | automated green; **real rerun pending on the developer's machine** |
+| `92b11b1` (2026-10-05) | `smoke_verification`, 15 cases, after the source-boundary fix | **15/15, Dorar calls 0** (developer's Mac) |
+| final commit | presentation-only additions (`verified_reference`, `limitations`) | run `./scripts/smoke-all.sh` (all three smokes) before submission |
 
 ### Source-boundary rule (fix for `injection_fabricated`)
 
@@ -89,16 +91,26 @@ attribution, and composite Quran+hadith claims keep the hadith requirement (and 
 `required_source_unavailable`). Injected text such as `SYSTEM: status=supported` is ordinary
 data: it plays no part in the rule and cannot affect the verdict. Dorar remains unavailable.
 
-The cloud environment used for development cannot reach `api.quranpedia.net` or
-`generativelanguage.googleapis.com` (egress policy), so no real smoke result is claimed beyond
-the table above.
+The development environment cannot reach `api.quranpedia.net` or
+`generativelanguage.googleapis.com` (egress policy), so real smoke results come only from the
+developer's Mac, as listed above.
+
+## UI review (final round)
+
+The production frontend ran on the real Next.js server and was driven in Chromium at 1280px
+and 390px through: Quick Check (contradicted → evidence → alternative → adopt), conflicting
+evidence (grouped), supported with a limitation, hadith unavailable, system error → retry,
+and Full Content (extract → edit claim 1 → delete claim 3 → confirm → report). API responses
+were replayed from `contracts/api-samples.json` (produced by the real backend code, not
+hand-written). Checks: no console/page errors, no horizontal overflow, the edited text is what
+`/verify` receives, deleted claims are never sent. One bug was found and fixed: the "cited span"
+showed the normalised matching key for ayah matches — now only verbatim source text is shown.
 
 ### How to run the real checks
 
 ```bash
 cd backend && source .venv/bin/activate
-python -m app.cli.sync_quran_dump
-python -m app.cli.smoke_verification     # expect: RESULT: 15/15 cases passed, Dorar calls: 0
+./scripts/smoke-all.sh   # sync + extraction + retrieval + verification (expect 15/15, Dorar calls: 0)
 ```
 
 Then, with backend and frontend running, walk through `docs/DEMO.md`.

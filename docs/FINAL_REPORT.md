@@ -1,4 +1,4 @@
-# Mizan | ميزان — Final MVP Report
+# Mizan | ميزان — Final MVP Report (submission)
 
 **Date:** 2026-10-05 · **Spec:** `MIZAN_PRODUCT_SPEC.md` (approved MVP) · **Principle:** Claim First. Evidence Second. Judgment Last.
 
@@ -12,79 +12,84 @@ sources and explains each result.
 | 1 Foundation (models, enums, contracts, RTL shell) | ✅ | `backend/app/domain`, `contracts/`, `frontend/src/app` |
 | 2 Core input UI (Home, Quick Check, Full Content text) | ✅ | `frontend/src/features/{quick-check,full-content}` |
 | 3 OCR | ❌ removed from MVP scope (product decision 2026-10-04) | Git history only |
-| 4 Claim extraction & review + confirmation gate | ✅ real smoke 4/4 | `pipeline/claim_extraction.py`, `api/v1/claims.py`, `features/claim-review` |
-| 5a Trusted-source retrieval (Quranpedia) | ✅ real smoke 9/9, Dorar 0 | `sources/quranpedia.py`, `sources/quran_index.py`, `pipeline/retrieval.py` |
-| 5b/6 Verification engine + Final Validation Gate | ✅ implemented; real rerun pending (see §4) | `pipeline/verification.py`, `quran_checks.py`, `passage_analysis.py`, `analysis.py`, `gate.py` |
-| 7 Results & explainability | ✅ | `pipeline/explanation.py`, `result_builder.py`, `features/results/*` |
+| 4 Claim extraction & review + confirmation gate | ✅ | `pipeline/claim_extraction.py`, `api/v1/claims.py`, `features/claim-review` |
+| 5 Trusted-source retrieval (Quranpedia) | ✅ | `sources/quranpedia.py`, `sources/quran_index.py`, `pipeline/retrieval.py` |
+| 6 Verification engine + Final Validation Gate | ✅ | `pipeline/{classification,verification,quran_checks,passage_analysis,analysis,gate}.py` |
+| 7 Results & explainability | ✅ | `pipeline/{explanation,result_builder}.py`, `features/results/*` |
 | 8 Alternative wording (re-verified) | ✅ | `pipeline/alternative_wording.py`, `/api/v1/alternative-wording`, `AlternativeWordingPanel` |
-| 9 Error handling & end-to-end integration | ✅ | `api/v1/verify.py`, `lib/verify`, `useVerificationRuns`, Quick Check + `/full-content/results` |
-| 10 Testing | ✅ automated (365 BE + 85 FE); 16 sensitive cases mapped | `docs/TESTING.md` |
+| 9 Error handling & end-to-end integration | ✅ | `api/v1/verify.py`, `lib/verify`, `useVerificationRuns`, `/full-content/results` |
+| 10 Testing | ✅ | `docs/TESTING.md` |
 
-Sources: Quran — Quranpedia Mushaf 1 (official dump, SHA-256); Tafsir al-Muyassar (book 2012),
-Ibn Kathir (136), Asbab al-Wahidi (2919), Al-Muharrar (460) — official live API. Hadith/Dorar:
-unavailable by policy → `required_source_unavailable` (never called, no gradings).
+Sources: Quran — Quranpedia Mushaf 1 (official dump, SHA-256); Tafsir al-Muyassar (2012),
+Ibn Kathir (136), Asbab al-Wahidi (2919), Al-Muharrar (460) — official live API.
+Hadith/Dorar: unavailable by policy → `required_source_unavailable` (never called, no gradings).
 
-## 2. How the locked rules are enforced
+## 2. Submission hardening (final round)
 
-- **Flows:** Quick Check = input → confirm gate → verify → result. Full Content = input →
-  extract → review → confirm → verify → report. `/verify` only accepts gate-produced confirmed
-  claims; edited text is verified; deleted/deselected claims are never sent; manual claims are verified.
-- **Statuses:** six evidence statuses + separate `out_of_scope`, `required_source_unavailable`,
-  `system_error(verification_incomplete)`; technical failures never map to evidence statuses
-  (backend gate + UI mapping, both tested).
-- **Traceability:** Evidence → source → provider → official address/record → reference/URL;
-  displayed text is the provider's text with a SHA-256; cited spans are exact substrings
-  (numbered-segment citation, retry once, then fail closed).
-- **No LLM knowledge as evidence:** LLM types cannot carry evidence/references/URLs/gradings;
-  explanations are deterministic; no web search; no confidence scores.
-- **Anchors** never raise a status; a contradicted anchor makes the claim contradicted.
-- **Alternative wording** is generated only from the server-stored result and is re-run through
-  the full pipeline; shown/adoptable only if `supported`.
-- **Security:** injected instructions are wrapped as untrusted data (random boundary); key never
-  logged/returned; test fakes are excluded from app code (enforced by `scripts/check.sh`).
+| Item | What changed | Proof |
+|---|---|---|
+| Quick Check > 1000 chars showed "technical problem" | Input error with the limit, field focused, nothing sent; a gate 422 is also an input message | `quick-check.test.tsx` (3 tests), `input-validation.test.ts` |
+| `verified_reference` (spec §3) | Filled from the Quran record's own reference for verified Quran locations; shown as «الموضع الموثّق في المصحف»; the user's text is never rewritten | `test_verified_reference_comes_from_the_quran_record…`, `results.test.tsx` |
+| `limitations` (spec §17) | Per claim + run-level union: an approved tafsir/asbab source searched successfully but holding no text for the ayah (e.g. Ibn Kathir gaps). Never changes a status | `test_source_without_text_for_the_ayah_is_surfaced_as_a_limitation`, `results.test.tsx` |
+| Conflicting evidence display (spec §13) | Evidence grouped «أدلة تؤيد / أدلة تخالف / أدلة أخرى» — presentation only | `results.test.tsx` |
+| Cited span displayed normalised text for ayah matches | A span is shown as a source quote only when it is verbatim source text | `results.test.tsx` (found during UI review) |
+| Alternative wording explanation | Shows the verified alternative's own deterministic `why` (traceable) instead of the LLM rationale; «اعتمدت الصياغة المقترحة…» notice after adoption | `results.test.tsx` |
+| Summary counters after adoption (spec §15) | Verified by test: claim moves group, counters update | `results.test.tsx` |
+| Frontend types vs real API | `contracts/api-samples.json` generated by the real FastAPI app; frontend test checks every field the UI uses exists in real responses | `backend/tests/test_api_samples.py`, `frontend/tests/unit/api-samples.test.ts` |
+| Accessibility | Evidence toggle `aria-controls`; status/notice regions; checked desktop 1280px and mobile 390px: no horizontal overflow, no console errors | UI review (§3) |
+| Cleanup | Temp archives and moved git locks deleted; no TODO/FIXME/debug code in the app; fakes only in tests (enforced by `scripts/check.sh`) | `scripts/check.sh` |
+| Real-check script | `scripts/smoke-all.sh` runs all three real smoke tests | — |
 
-## 3. Verification results (real, not simulated)
+## 3. Verification results
 
-- Automated: backend **365 passed**, ruff + format clean, contract snapshot up to date; frontend
-  **85 passed**, typecheck + lint clean, production build OK (fresh build), bundle hygiene OK.
-- Real smoke history: Task 4 4/4; Task 5a 9/9 (Dorar 0); Task 5b first run 11/13 (both failures
-  fixed in `7379966` with regression tests); 15-case run on `8b9a67f` 14/15 (Dorar 0) —
-  `injection_fabricated` fixed with a source-boundary rule; rerun pending. See `docs/TESTING.md`.
+- **Automated (final tree):** backend **370 passed**; ruff + format clean; contract snapshot up to
+  date; frontend **98 passed**; typecheck + lint clean; production build OK.
+- **Real smoke (Gemini + Quranpedia):** `smoke_verification` **15/15, Dorar calls 0** on `92b11b1`
+  (run on the developer's Mac). Earlier: extraction 4/4, retrieval 9/9.
+- **UI review:** the production build ran on the real Next.js server and was driven in Chromium
+  through Quick Check, Full Content (extract → edit → delete → confirm → results), evidence,
+  conflict grouping, limitations, hadith-unavailable, system error + retry, and alternative
+  wording + adoption. API responses were replayed from samples produced by the real backend
+  code (the development environment cannot reach Gemini/Quranpedia). This confirmed that the
+  edited text is verified and deleted claims are never sent.
 
-## 4. Genuine blockers / open items
+## 4. Formally deferred (not MVP blockers)
 
-1. **Real smoke rerun required on the developer machine.** The development cloud and the local
-   sandbox VM cannot reach `api.quranpedia.net` or `generativelanguage.googleapis.com` (egress
-   policy). Last run 14/15; after the source-boundary fix run `python -m app.cli.smoke_verification` →
-   expected `15/15`, `Dorar calls: 0`.
-   Results screenshots must be captured during that run (`docs/DEMO.md`).
-2. **Hadith verification is unavailable** until Dorar provides official per-hadith ids/URLs,
-   single-record retrieval and written display/caching permission (`docs/SOURCE_VALIDATION.md`).
-3. **Before a public launch (not MVP blockers):** Gemini Free Tier data-use terms (paid tier or a
-   user notice); in-memory result store (alternative wording needs the same server process,
-   max 500 results); Ibn Kathir 136 lacks content for 179 ayahs.
+| Item | Why deferred |
+|---|---|
+| Six detailed loading stages (§18) | Each claim is one request; showing stages would need streaming. Real per-claim progress ("i من n", completed/current/waiting) is implemented |
+| Semantic search (§6) | No permission to index provider content; exact + keyword retrieval with explicit "semantic not attempted" record (approved 5a plan) |
+| Extra strength signals (match quality, agreement) | Four fact-based signals are shown; conflict is shown explicitly per claim |
+| Database | No MVP feature needs persistence; results live in the session |
+| Hadith verification | Dorar provides no official per-hadith ids/URLs or written permission |
+| Image input / OCR | Product decision 2026-10-04 |
 
-## 5. Final submission checklist
+## 5. Known limitations
 
-| # | Deliverable | File / path | Status | Blocker |
-|---|---|---|---|---|
-| 1 | Product specification (source of truth) | Project: `MIZAN_PRODUCT_SPEC.md` | complete | — |
-| 2 | Source code — backend | `backend/` | complete | — |
-| 3 | Source code — frontend | `frontend/` | complete | — |
-| 4 | Shared contracts | `contracts/domain-contracts.json` | complete | — |
-| 5 | README (overview, setup, run, try it) | `README.md` | complete | — |
-| 6 | Architecture / pipeline doc | `docs/ARCHITECTURE.md` | complete | — |
-| 7 | User flows, screens & UX states | `docs/USER_FLOWS.md` | complete | — |
-| 8 | Source validation & approved source decisions | `docs/SOURCE_VALIDATION.md`, `docs/dumps-validation-2026-10-04.txt` | complete | — |
-| 9 | Integration requirements record | `docs/INTEGRATION_TODO.md` | complete | — |
-| 10 | Testing strategy, 16-case matrix, results | `docs/TESTING.md` | complete | — |
-| 11 | Automated test suites | `backend/tests/`, `frontend/tests/` | complete (365 + 85 passing) | — |
-| 12 | One-command check script | `scripts/check.sh` | complete | — |
-| 13 | Real smoke CLIs | `backend/app/cli/smoke_*.py` | complete | — |
-| 14 | Real smoke rerun (15 cases) | output of `smoke_verification` | **incomplete** | needs the developer machine (network) |
-| 15 | Demo script | `docs/DEMO.md` | complete | — |
-| 16 | Screenshots — input, guidance, error & empty states | `docs/screenshots/` (16 PNG) | complete | — |
-| 17 | Screenshots — verification results | `docs/screenshots/` | **incomplete** | needs live backend (same as #14) |
-| 18 | Final report & checklist | `docs/FINAL_REPORT.md` | complete | — |
-| 19 | Task status | Project: `claude/TASK_STATUS.md` | complete | — |
-| 20 | Hadith (Dorar) integration | `backend/app/sources/dorar.py` | not in scope until unblocked | Dorar terms/ids (external) |
+- Session results are in-browser memory (lost on refresh); alternative wording needs the same
+  backend process (in-memory store, 500 results).
+- Ibn Kathir (book 136) has no provider text for 179 ayahs — now surfaced as a limitation.
+- Quran text is Mushaf 1 diacritized (not Uthmani rasm); asbab relation type is "unspecified".
+- Gemini Free Tier data-use terms must be reviewed before a public launch; Quranpedia allows
+  120 requests/min.
+
+## 6. Final submission checklist
+
+| # | Deliverable | Path | Status |
+|---|---|---|---|
+| 1 | Product specification | Project: `MIZAN_PRODUCT_SPEC.md` | complete |
+| 2 | Backend / frontend source | `backend/`, `frontend/` | complete |
+| 3 | Shared contracts + real API samples | `contracts/` | complete |
+| 4 | README (setup, run, try it) | `README.md` | complete |
+| 5 | Architecture | `docs/ARCHITECTURE.md` | complete |
+| 6 | User flows & UX states | `docs/USER_FLOWS.md` | complete |
+| 7 | Source validation | `docs/SOURCE_VALIDATION.md` | complete |
+| 8 | Integration record | `docs/INTEGRATION_TODO.md` | complete |
+| 9 | Testing & 16-case matrix | `docs/TESTING.md` | complete |
+| 10 | Automated tests | `backend/tests/`, `frontend/tests/` | complete (370 + 98) |
+| 11 | Check scripts | `scripts/check.sh`, `scripts/smoke-all.sh` | complete |
+| 12 | Demo script | `docs/DEMO.md` | complete |
+| 13 | Screenshots (input/guidance/error/empty) | `docs/screenshots/` | complete |
+| 14 | Final report | `docs/FINAL_REPORT.md` | complete |
+| 15 | Real smoke on the final commit | `./scripts/smoke-all.sh` | run on the developer's Mac before submission |
+| 16 | Demo & screen recording | — | owner: Rahaf |

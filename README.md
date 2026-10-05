@@ -13,7 +13,7 @@ The approved product specification (`MIZAN_PRODUCT_SPEC.md`, in the Mizan projec
 | Full Content Check (text → extract → review → confirm → verify → report) | ✅ real backend |
 | Trusted sources: Quran (Mushaf 1), Tafsir al-Muyassar (2012), Ibn Kathir (136), Asbab al-Wahidi (2919), Al-Muharrar (460) — Quranpedia | ✅ connected |
 | Hadith (Dorar al-Sunniyah) | ⛔ unavailable by policy → `required_source_unavailable` (never a verdict, never an invented grading) |
-| Results & explainability (statuses, why, what to do, evidence cards, sources, links) | ✅ |
+| Results & explainability (statuses, why, what to do, verified Quran reference, limitations, evidence cards grouped for conflicts, sources, links) | ✅ |
 | Alternative wording (proposed, fully re-verified, adoptable only if verified) | ✅ |
 | Image input / OCR | ❌ removed from MVP scope (2026-10-04) |
 
@@ -98,6 +98,8 @@ More scenarios: [`docs/DEMO.md`](docs/DEMO.md).
 ## Real end-to-end smoke tests (need the internet + the Gemini key)
 
 ```bash
+./scripts/smoke-all.sh                     # all of the below, in order (last result: 15/15, Dorar 0)
+
 cd backend && source .venv/bin/activate
 python -m app.cli.smoke_claim_extraction   # Task 4: extraction only
 python -m app.cli.smoke_retrieval          # Task 5a: retrieval/traceability (no verdicts)
@@ -116,6 +118,12 @@ cd frontend && npm run test:integration   # frontend → running backend connect
 
 ESLint stays on v9 because `eslint-config-next` 16's bundled plugins do not yet support ESLint 10.
 If an approved enum changes (requires product approval): `cd backend && python -m app.domain.contracts_export`.
+
+## Formally deferred (not in this MVP)
+
+Six detailed loading stages (per-claim progress is shown instead), semantic search, extra
+evidence-strength signals, a database, hadith verification (Dorar unavailable), image/OCR.
+Reasons: `docs/FINAL_REPORT.md` §4.
 
 ## Non-negotiables enforced in code
 

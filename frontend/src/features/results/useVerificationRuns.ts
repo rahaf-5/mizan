@@ -62,6 +62,7 @@ export function useVerificationRuns(key: string, claims: ConfirmedClaim[]) {
         claim: { ...old, confirmed_claim_text: alt.proposed_text, user_confirmation_status: "edited" },
         runId: alt.run_id,
         outcome: alt.outcome,
+        adopted: true,
       },
     });
   };

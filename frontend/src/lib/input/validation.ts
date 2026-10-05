@@ -30,11 +30,19 @@ export function looksLikeMultipleClaims(text: string): boolean {
 export type QuickCheckValidation =
   | { status: "ok" }
   | { status: "empty" }
-  | { status: "multiple_claims_suspected" };
+  | { status: "multiple_claims_suspected" }
+  | { status: "too_long"; max: number };
+
+/** Same limit the backend confirmation gate enforces on one claim (MAX_CLAIM_CHARS). */
+export const QUICK_CHECK_MAX_CHARS = 1_000;
+
+export const isTooLongClaim = (text: string): boolean => text.length > QUICK_CHECK_MAX_CHARS;
 
 export function validateQuickCheck(text: string): QuickCheckValidation {
   if (isBlank(text)) return { status: "empty" };
+  // Several claims → guide to Full Content first (the right place for long text).
   if (looksLikeMultipleClaims(text)) return { status: "multiple_claims_suspected" };
+  if (isTooLongClaim(text)) return { status: "too_long", max: QUICK_CHECK_MAX_CHARS };
   return { status: "ok" };
 }
 

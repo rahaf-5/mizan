@@ -156,6 +156,39 @@ describe("Quick Check", () => {
     expect(probe().prepared).toBeNull();
   });
 
+  it("a claim over 1000 characters is an input error (not technical) and nothing is sent", async () => {
+    const user = userEvent.setup();
+    setup();
+    const long = "أ".repeat(1001);
+    const field = screen.getByRole("textbox", { name: "الادعاء" });
+    await user.click(field);
+    await user.paste(long);
+    await user.click(screen.getByRole("button", { name: "تحقق من الادعاء" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("الادعاء أطول من الحد المسموح");
+    expect(screen.getByRole("alert")).not.toHaveTextContent("مشكلة تقنية");
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("exactly 1000 characters is accepted", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("textbox", { name: "الادعاء" }));
+    await user.paste("ب".repeat(1000));
+    await user.click(screen.getByRole("button", { name: "تحقق من الادعاء" }));
+    await waitFor(() => expect(urls()[0]).toMatch(/claims\/confirm$/));
+  });
+
+  it("a validation rejection from the gate is shown as an input problem", async () => {
+    const user = userEvent.setup();
+    fetchSpy.mockImplementation(() => Promise.resolve(jsonResponse({ detail: [{ type: "string_too_long" }] }, 422)));
+    setup();
+    await user.type(screen.getByRole("textbox", { name: "الادعاء" }), SINGLE);
+    await user.click(screen.getByRole("button", { name: "تحقق من الادعاء" }));
+    expect(await screen.findByText("تعذّر قبول نص الادعاء. راجع النص ثم حاول مرة أخرى.")).toBeInTheDocument();
+    expect(urls().some((u) => u.endsWith("/verify"))).toBe(false);
+  });
+
   it("keeps the claim when the user goes back to edit", async () => {
     const user = userEvent.setup();
     setup();

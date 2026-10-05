@@ -35,6 +35,8 @@ export const contradicted = (claimId = "c1", text = "قال تعالى في سو
   result_group: "do_not_use_as_written",
   why: "«سورة آل عمران» يخالفه القرآن الكريم. الموضع الصحيح الموثّق: سورة البقرة، الآية 158.",
   what_to_do: "لا تنشر الادعاء بصيغته الحالية.",
+  verified_reference: "سورة البقرة، الآية 158",
+  limitations: [],
   evidence: [QURAN_EVIDENCE],
   analysis: {
     components: [
@@ -74,20 +76,34 @@ export const TAFSIR_EVIDENCE: Evidence = {
   metadata: { provider_author: "مجمع الملك فهد لطباعة المصحف الشريف", page_kind: "none" },
 };
 
+export const IBN_KATHIR_EVIDENCE: Evidence = {
+  ...TAFSIR_EVIDENCE,
+  evidence_id: "mizan-ev:tafsir:2:255:ik",
+  text: "قوله لا تأخذه سنة ولا نوم أي لا يغلبه نعاس ولا نوم",
+  source_name: "تفسير ابن كثير",
+  trusted_source_id: "tafsir_ibn_kathir",
+  reference: "تفسير ابن كثير — سورة البقرة، الآية 255",
+  source_address: "/v1/ayah/2/255/book/136",
+  source_url: "https://api.quranpedia.net/v1/ayah/2/255/book/136",
+};
+
 export const conflicting: VerificationOutcome = {
   ...contradicted("c3", "معنى «لا تأخذه سنة» كذا"),
   status: "conflicting_evidence",
   result_group: "needs_evidence_review",
+  verified_reference: null,
+  limitations: ["لا يتضمن «المحرر في أسباب النزول» لدى المزوّد نصًا للآية المعنية، فلم يُستخدم في هذا التحقق."],
   why: "بشأن «كذا»: يؤيده التفسير الميسر ويخالفه تفسير ابن كثير؛ فالأدلة المعتمدة متعارضة.",
   what_to_do: "راجع الأدلة المتعارضة المعروضة.",
-  evidence: [TAFSIR_EVIDENCE],
+  evidence: [TAFSIR_EVIDENCE, IBN_KATHIR_EVIDENCE],
   analysis: {
-    components: [{ component_id: "s1", text: "كذا", kind: "statement", role: "substantive", claim_type: "tafsir", outcome: "conflicting", evidence_ids: [TAFSIR_EVIDENCE.evidence_id], verified_location: [], detail: null }],
+    components: [{ component_id: "s1", text: "كذا", kind: "statement", role: "substantive", claim_type: "tafsir", outcome: "conflicting", evidence_ids: [TAFSIR_EVIDENCE.evidence_id, IBN_KATHIR_EVIDENCE.evidence_id], verified_location: [], detail: null }],
     assessments: [
       { evidence_id: TAFSIR_EVIDENCE.evidence_id, relationship: "supports", claim_component: "كذا", component_id: "s1", evidence_span: "لا تأخذه سِنَة أي: نعاس.", supported_part: null, unsupported_part: null, rationale: "المقطع يذكر هذا المعنى صراحة.", assessed_by: "llm_analysis", strength: { observations: [] } },
+      { evidence_id: IBN_KATHIR_EVIDENCE.evidence_id, relationship: "contradicts", claim_component: "كذا", component_id: "s1", evidence_span: "لا يغلبه نعاس ولا نوم", supported_part: null, unsupported_part: null, rationale: "المقطع يذكر معنى مختلفًا.", assessed_by: "llm_analysis", strength: { observations: [] } },
     ],
     related_unverified_addresses: [],
-    evidence_conflicts: [{ evidence_ids: ["x", "y"], description: "أدلة متعارضة" }],
+    evidence_conflicts: [{ evidence_ids: [TAFSIR_EVIDENCE.evidence_id, IBN_KATHIR_EVIDENCE.evidence_id], description: "أدلة متعارضة" }],
   },
 };
 
@@ -97,6 +113,7 @@ export const noEvidence: VerificationOutcome = {
   result_group: "needs_evidence_review",
   why: "لم يتم العثور على دليل كافٍ للتحقق من الادعاء ضمن المصادر المعتمدة حاليًا في ميزان. عدم العثور على دليل لا يعني أن الادعاء خاطئ.",
   what_to_do: "لا تنشره على أنه حقيقة مؤكدة.",
+  verified_reference: null,
   evidence: [],
   analysis: { components: [], assessments: [], related_unverified_addresses: ["/v1/mushafs/1/5/2"], evidence_conflicts: [] },
   validation: { outcome: "abstain" },

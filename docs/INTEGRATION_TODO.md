@@ -84,8 +84,8 @@ Implemented in `backend/app/llm/gemini.py` behind `LLMProvider`. Backend-only; k
       `llm_invalid_response`. All other schema restrictions are still sent.
 - [x] Real-provider smoke test after the maxItems fix: `smoke_claim_extraction` 4/4 (2026-10-04,
       developer machine).
-- [ ] Real `smoke_verification` rerun (15 cases, incl. 2 prompt-injection cases) on the developer
-      machine — the development cloud cannot reach Gemini or Quranpedia.
+- [x] Real `smoke_verification` (15 cases, incl. 2 prompt-injection cases): 15/15, Dorar calls 0
+      on `92b11b1` (developer machine). Final-commit rerun: `./scripts/smoke-all.sh`.
 
 ## OCR — REMOVED FROM MVP SCOPE (2026-10-04)
 

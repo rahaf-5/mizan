@@ -16,6 +16,7 @@ import {
   supported,
   systemError,
   TAFSIR_EVIDENCE,
+  IBN_KATHIR_EVIDENCE,
 } from "../fixtures/outcomes";
 import { jsonResponse, renderWithSession } from "../helpers";
 
@@ -136,12 +137,40 @@ describe("Full Content results", () => {
     expect(within(card).getByText("شرح ميزان")).toBeInTheDocument();
     expect(within(card).getByText(/النص موجود في سورة البقرة/)).toBeInTheDocument();
     expect(within(card).getByText("مطابقة آلية حرفية مع نص المصدر.")).toBeInTheDocument();
+    // The fixture's span is a normalised matching key, not verbatim source text → never shown as a quote.
+    expect(within(card).queryByText("المقطع الذي استند إليه ميزان")).toBeNull();
+    expect(within(card).queryByText(/ان الصفا والمروه/)).toBeNull();
     expect(within(card).getByText(QURAN_EVIDENCE.reference)).toBeInTheDocument();
     expect(within(card).getByText("Quranpedia")).toBeInTheDocument();
     const link = within(card).getByRole("link", { name: QURAN_EVIDENCE.source_address });
     expect(link).toHaveAttribute("href", QURAN_EVIDENCE.source_url);
     // No numeric confidence score anywhere.
     expect(document.body.textContent).not.toMatch(/%|confidence|درجة الثقة/);
+  });
+
+  it("shows the verified Quran reference from the record without rewriting the claim", async () => {
+    serve({ c1: contradicted() });
+    const text = contradicted().confirmed_claim_text;
+    setup([claim("c1", text)]);
+    expect(await screen.findByText("الموضع الموثّق في المصحف")).toBeInTheDocument();
+    expect(screen.getByText("سورة البقرة، الآية 158")).toBeInTheDocument();
+    expect(screen.getByText(text)).toBeInTheDocument(); // user's wording kept as is
+    expect(screen.queryByText("حدود هذه النتيجة")).toBeNull(); // no limitations → no section
+  });
+
+  it("conflicting evidence: limitations shown and evidence grouped into supporting / opposing", async () => {
+    const user = userEvent.setup();
+    serve({ c3: conflicting });
+    setup([claim("c3", conflicting.confirmed_claim_text)]);
+    expect(await screen.findByText("حدود هذه النتيجة")).toBeInTheDocument();
+    expect(screen.getByText(conflicting.limitations[0])).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /عرض الأدلة والمصادر/ }));
+    const pro = screen.getByRole("region", { name: "أدلة تؤيد" });
+    const con = screen.getByRole("region", { name: "أدلة تخالف" });
+    expect(within(pro).getByText(TAFSIR_EVIDENCE.text)).toBeInTheDocument();
+    expect(within(con).getByText(IBN_KATHIR_EVIDENCE.text)).toBeInTheDocument();
+    expect(within(con).getByText("«لا يغلبه نعاس ولا نوم»")).toBeInTheDocument(); // verbatim span shown
+    expect(within(pro).queryByText(IBN_KATHIR_EVIDENCE.text)).toBeNull();
   });
 
   it("tafsir evidence shows provider author and marks LLM analysis as not part of the source", async () => {
@@ -173,9 +202,18 @@ describe("Full Content results", () => {
     setup([claim("c1", original.confirmed_claim_text)]);
     await user.click(await screen.findByRole("button", { name: "اقترح صياغة بديلة" }));
     expect(await screen.findByText("✓ تم التحقق من الصياغة المقترحة")).toBeInTheDocument();
+    expect(screen.getByText("نتيجة التحقق من الصياغة المقترحة")).toBeInTheDocument();
+    const sectionCount = (s: string) => document.querySelector(`li[data-section="${s}"]`)?.textContent ?? null;
+    expect(sectionCount("do_not_use_as_written")).toMatch(/1/);
+    expect(sectionCount("verified")).toBeNull();
     await user.click(screen.getByRole("button", { name: "اعتماد الصياغة المقترحة" }));
     expect(await screen.findByText("مدعوم بالأدلة")).toBeInTheDocument();
     expect(screen.queryByText("يخالف الدليل")).toBeNull();
+    // Report updated dynamically: claim moved group and summary counters changed (spec §15).
+    expect(sectionCount("verified")).toMatch(/1/);
+    expect(sectionCount("do_not_use_as_written")).toBeNull();
+    expect(screen.getByText("اعتمدت الصياغة المقترحة بعد التحقق منها.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /محتوى تم التحقق منه/ })).toBeInTheDocument();
     expect(screen.getAllByText(fixed).length).toBeGreaterThan(0);
   });
 

@@ -63,6 +63,12 @@ export function AlternativeWordingPanel({
         <blockquote dir="auto" className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-3">
           {state.alt.proposed_text}
         </blockquote>
+        {state.alt.outcome?.kind === "verification" && state.alt.outcome.why ? (
+          <div className="space-y-1 text-sm">
+            <p className="font-bold">{t.whyLabel}</p>
+            <p>{state.alt.outcome.why}</p>
+          </div>
+        ) : null}
         <Button onClick={() => onAdopt(state.alt)}>{t.adopt}</Button>
       </Notice>
     );

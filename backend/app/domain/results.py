@@ -45,6 +45,12 @@ class VerificationOutcome(BaseModel):
     result_group: ResultGroup | None = None
     why: str | None = None
     what_to_do: str | None = None
+    #: Location established by the trusted Quran source (spec §3 `verified_reference`). Shown
+    #: next to the user's own wording/reference; the user's reference is never rewritten.
+    verified_reference: str | None = None
+    #: Relevant limitations of this result (spec §17), e.g. an approved source that has no
+    #: text for the anchor ayah at the provider. Facts only; never a verdict.
+    limitations: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _validated_and_traceable(self) -> VerificationOutcome:

@@ -22,6 +22,7 @@ taken verbatim from the product spec). Disclaimer on every page: «ميزان أ
 Input (one claim, editable)
   └─ «تحقق من الادعاء»  (= explicit confirmation)
        ├─ empty → inline error «يرجى كتابة الادعاء الذي تريد التحقق منه.», focus returns to the field
+       ├─ longer than 1000 characters → inline input error with the limit (never "technical"), nothing sent
        ├─ looks like several claims → non-blocking guidance: «الانتقال إلى فحص محتوى كامل» or «المتابعة كادعاء واحد»
        └─ POST /claims/confirm (exact text, origin=manual)   status: «جارٍ تأكيد الادعاء…»
             ├─ failure → «تعذّر تأكيد الادعاء بسبب مشكلة تقنية…» (nothing verified)
@@ -53,6 +54,8 @@ report can never be shown for edited claims.
    حاليًا · تعذّر التحقق بسبب مشكلة تقنية.
 4. **Claim card**: claim text → status badge (icon + text, never colour only) → «لماذا وضعه
    ميزان هنا؟» → «ماذا تفعل؟» → what Mizan checked in the claim (per component) → conflict note →
+   «الموضع الموثّق في المصحف» (from the Quran record; the claim text is never rewritten) →
+   «حدود هذه النتيجة» (e.g. a source without text for the ayah) →
    «عرض الأدلة والمصادر (n)» → «اقترح صياغة بديلة» (only for partially supported / contradicted).
 5. **Evidence card**: «النص من المصدر» (verbatim provider text, its own region) → «المقطع الذي
    استند إليه ميزان» → relation to the claim → «شرح ميزان» (labelled as automated analysis or
@@ -70,14 +73,14 @@ report can never be shown for edited claims.
 | Supported | «مدعوم بالأدلة» + evidence |
 | Partially supported | «مدعوم جزئيًا»: supported vs unsupported parts + alternative wording |
 | Contradicted | «يخالف الدليل»: what contradicts, the real location/text + alternative wording |
-| Conflicting evidence | «أدلة متعارضة» + «لماذا لم يُصدر ميزان حكمًا قاطعًا؟» (both sides shown, no ranking) |
+| Conflicting evidence | «أدلة متعارضة» + «لماذا لم يُصدر ميزان حكمًا قاطعًا؟»; evidence grouped «أدلة تؤيد / أدلة تخالف / أدلة أخرى» (no ranking) |
 | Insufficient evidence | «أدلة غير كافية»: related evidence shown, why it does not suffice |
 | No evidence | «لم يُعثر على دليل» + «عدم العثور على دليل لا يعني أن الادعاء خاطئ.» |
 | Required source unavailable (hadith) | «المصدر المطلوب غير متاح حاليًا» naming الدرر السنية; no verdict, no grading |
 | Out of scope | «خارج نطاق ميزان حاليًا» — explicitly not "false" |
 | System error / network / malformed response | «تعذّر إكمال التحقق» + reason (service busy / source temporarily unavailable / server unreachable / not configured) + «إعادة التحقق»; explicitly "not a result about the claim" |
 | Alternative — working | «جارٍ اقتراح صياغة بديلة وإعادة التحقق منها…» |
-| Alternative — verified | «✓ تم التحقق من الصياغة المقترحة» + text + «اعتماد الصياغة المقترحة» |
+| Alternative — verified | «✓ تم التحقق من الصياغة المقترحة» + text + its verification explanation + «اعتماد الصياغة المقترحة»; after adoption the card shows «اعتمدت الصياغة المقترحة بعد التحقق منها.» and the summary counters update |
 | Alternative — not verified | «لم يتمكن ميزان من التحقق من صياغة بديلة موثوقة. راجع الادعاء والمصادر قبل النشر.» (the unverified text is never shown) |
 | Alternative — expired / error | server result expired → re-verify first; technical error message |
 

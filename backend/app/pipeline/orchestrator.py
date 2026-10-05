@@ -74,7 +74,12 @@ class VerificationPipeline:
         outcomes: list[ClaimOutcome] = []
         for claim in confirmed:
             outcomes.append(await self._run_one_safely(claim))
-        return FinalUserResult(run_id=str(uuid.uuid4()), outcomes=outcomes)
+        limitations: list[str] = []
+        for o in outcomes:
+            for item in getattr(o, "limitations", []):
+                if item not in limitations:
+                    limitations.append(item)
+        return FinalUserResult(run_id=str(uuid.uuid4()), outcomes=outcomes, limitations=limitations)
 
     async def _run_one_safely(self, claim) -> ClaimOutcome:  # type: ignore[no-untyped-def]
         current_stage = PipelineStage.CLAIM_CLASSIFICATION

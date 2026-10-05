@@ -39,7 +39,7 @@ class MizanError(Exception):
 
 
 class StageNotImplementedError(MizanError):
-    """A pipeline stage that is still a placeholder (to be implemented in a later task)."""
+    """A pipeline stage with no implementation (used only by test-only placeholder stages)."""
 
     code = SystemErrorCode.STAGE_NOT_IMPLEMENTED
     retryable = False

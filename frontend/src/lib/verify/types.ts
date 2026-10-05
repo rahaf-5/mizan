@@ -80,6 +80,10 @@ export interface VerificationOutcome {
   result_group: ResultGroup | null;
   why: string | null;
   what_to_do: string | null;
+  /** Location established by the trusted Quran record (never the user's text rewritten). */
+  verified_reference: string | null;
+  /** Facts about this result's limits (e.g. a source without text for the ayah). */
+  limitations: string[];
   evidence: Evidence[];
   analysis: {
     assessments: EvidenceAssessment[];
@@ -129,7 +133,7 @@ export interface FinalUserResult {
 export type ClaimRun =
   | { state: "waiting"; claim: ConfirmedClaim }
   | { state: "running"; claim: ConfirmedClaim }
-  | { state: "done"; claim: ConfirmedClaim; runId: string; outcome: ClaimOutcome }
+  | { state: "done"; claim: ConfirmedClaim; runId: string; outcome: ClaimOutcome; adopted?: boolean }
   /** The request itself failed (network / service) — a technical problem, never a verdict. */
   | { state: "failed"; claim: ConfirmedClaim; code: string };
 

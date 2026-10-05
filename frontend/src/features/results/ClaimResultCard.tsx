@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Notice } from "@/components/ui/Notice";
 import { getDictionary } from "@/i18n";
 import { formatNumber } from "@/lib/format";
 import { canOfferAlternative } from "@/lib/verify/report";
-import type { AlternativeWording, ClaimRun, VerificationOutcome } from "@/lib/verify/types";
+import type { AlternativeWording, ClaimRun, Evidence, VerificationOutcome } from "@/lib/verify/types";
 import { AlternativeWordingPanel } from "./AlternativeWordingPanel";
 import { EvidenceCard } from "./EvidenceCard";
 import { StatusBadge } from "./StatusBadge";
@@ -21,6 +22,7 @@ function technicalReason(code: string): string {
   if (code === "source_unavailable" || code === "verification_incomplete") return t.technical.source;
   if (code === "network_error") return t.technical.network;
   if (code === "llm_not_configured") return t.technical.notConfigured;
+  if (code === "claim_too_long" || code === "http_422" || code === "invalid_request") return t.technical.invalidInput;
   return "";
 }
 
@@ -33,9 +35,34 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
+type ConflictGroup = keyof typeof t.conflictGroups;
+
+/** For conflicting evidence only: group cards by how each item relates to the claim (spec §13).
+ * Presentation only — the status and every relationship come from the backend unchanged. */
+function conflictGroups(outcome: VerificationOutcome): { group: ConflictGroup; items: Evidence[] }[] {
+  const groupOf = (ev: Evidence): ConflictGroup => {
+    const rels = outcome.analysis.assessments.filter((a) => a.evidence_id === ev.evidence_id).map((a) => a.relationship);
+    if (rels.includes("contradicts")) return "contradicts";
+    if (rels.includes("supports") || rels.includes("partially_supports")) return "supports";
+    return "other";
+  };
+  return (["supports", "contradicts", "other"] as const)
+    .map((group) => ({ group, items: outcome.evidence.filter((ev) => groupOf(ev) === group) }))
+    .filter((g) => g.items.length > 0);
+}
+
 function VerificationDetails({ outcome }: { outcome: VerificationOutcome }) {
   const [open, setOpen] = useState(false);
+  const panelId = useId();
   const { components, assessments, related_unverified_addresses: related } = outcome.analysis;
+  const card = (ev: Evidence) => (
+    <EvidenceCard
+      key={ev.evidence_id}
+      evidence={ev}
+      assessments={assessments.filter((a) => a.evidence_id === ev.evidence_id)}
+      components={components}
+    />
+  );
   return (
     <div className="space-y-4">
       {components.length ? (
@@ -62,23 +89,42 @@ function VerificationDetails({ outcome }: { outcome: VerificationOutcome }) {
         </Block>
       ) : null}
 
+      {outcome.verified_reference ? (
+        <Block title={t.verifiedReferenceTitle}>
+          <p>{outcome.verified_reference}</p>
+          <p className="text-sm text-[var(--color-muted)]">{t.verifiedReferenceNote}</p>
+        </Block>
+      ) : null}
+
+      {outcome.limitations.length ? (
+        <Block title={t.limitationsTitle}>
+          <ul className="list-disc space-y-1 ps-6 text-sm">
+            {outcome.limitations.map((l) => (
+              <li key={l}>{l}</li>
+            ))}
+          </ul>
+        </Block>
+      ) : null}
+
       {related.length ? <p className="text-sm text-[var(--color-muted)]">{t.relatedUnverified(formatNumber(related.length))}</p> : null}
 
       {outcome.evidence.length ? (
         <div className="space-y-3">
-          <Button variant="secondary" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+          <Button variant="secondary" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen((v) => !v)}>
             {open ? t.hideEvidence : t.showEvidence(formatNumber(outcome.evidence.length))}
           </Button>
           {open ? (
-            <div className="space-y-3">
-              {outcome.evidence.map((ev) => (
-                <EvidenceCard
-                  key={ev.evidence_id}
-                  evidence={ev}
-                  assessments={assessments.filter((a) => a.evidence_id === ev.evidence_id)}
-                  components={components}
-                />
-              ))}
+            <div id={panelId} className="space-y-3">
+              {outcome.status === "conflicting_evidence"
+                ? conflictGroups(outcome).map(({ group, items }) => (
+                    <section key={group} className="space-y-3" aria-label={t.conflictGroups[group]}>
+                      <h5 className="font-bold">
+                        {t.conflictGroups[group]} ({formatNumber(items.length)})
+                      </h5>
+                      {items.map(card)}
+                    </section>
+                  ))
+                : outcome.evidence.map(card)}
             </div>
           ) : null}
         </div>
@@ -142,6 +188,7 @@ export function ClaimResultCard({
       badge = <StatusBadge kind={o.status} />;
       body = (
         <>
+          {run.adopted ? <Notice tone="success" role="status" title={t.alternative.adopted} /> : null}
           <Block title={t.whyTitle}>
             <p>{o.why}</p>
           </Block>

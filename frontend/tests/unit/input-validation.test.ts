@@ -45,3 +45,10 @@ describe("Full Content text validation", () => {
     expect(validateContentText(SINGLE)).toEqual({ status: "ok" });
   });
 });
+
+describe("Quick Check length (same limit as the backend gate)", () => {
+  it("over 1000 characters is too_long; 1000 is ok", () => {
+    expect(validateQuickCheck("أ".repeat(1001))).toEqual({ status: "too_long", max: 1000 });
+    expect(validateQuickCheck("أ".repeat(1000))).toEqual({ status: "ok" });
+  });
+});

@@ -1,0 +1,878 @@
+{
+  "verify_contradicted_quran": {
+    "run_id": "07468bf0-bd5a-416a-b8ce-fd86b8e7c62f",
+    "created_at": "2026-10-05T10:20:18.454021Z",
+    "outcomes": [
+      {
+        "kind": "verification",
+        "claim_id": "c1",
+        "confirmed_claim_text": "قال تعالى في سورة آل عمران: «إن الصفا والمروة من شعائر الله»",
+        "status": "contradicted",
+        "analysis": {
+          "claim_id": "c1",
+          "assessments": [
+            {
+              "evidence_id": "mizan-ev:quran:1:165",
+              "relationship": "supports",
+              "claim_component": "إن الصفا والمروة من شعائر الله",
+              "supported_part": null,
+              "unsupported_part": null,
+              "rationale": "النص المقتبس مطابق لنص الآية في المصحف (بعد تطبيع المطابقة فقط).",
+              "strength": {
+                "observations": [
+                  {
+                    "signal": "source_suitability",
+                    "basis": "القرآن الكريم: مصدر معتمد ومؤهل لادعاءات نص القرآن وموضعه."
+                  },
+                  {
+                    "signal": "directness",
+                    "basis": "النص المستشهد به يذكر مضمون هذا الجزء مباشرة."
+                  },
+                  {
+                    "signal": "traceability",
+                    "basis": "له عنوان رسمي لدى المزوّد وبصمة تطابق النص المعروض."
+                  }
+                ]
+              },
+              "component_id": "q1",
+              "evidence_span": "ان الصفا والمروه من شعاير الله",
+              "assessed_by": "deterministic"
+            },
+            {
+              "evidence_id": "mizan-ev:quran:1:165",
+              "relationship": "contradicts",
+              "claim_component": "سورة آل عمران",
+              "supported_part": null,
+              "unsupported_part": null,
+              "rationale": "النص موجود في سورة البقرة، الآية 158، وليس في الموضع المذكور في الادعاء.",
+              "strength": {
+                "observations": [
+                  {
+                    "signal": "source_suitability",
+                    "basis": "القرآن الكريم: مصدر معتمد ومؤهل لادعاءات نص القرآن وموضعه."
+                  },
+                  {
+                    "signal": "directness",
+                    "basis": "النص المستشهد به يخالف هذا الجزء مباشرة."
+                  },
+                  {
+                    "signal": "traceability",
+                    "basis": "له عنوان رسمي لدى المزوّد وبصمة تطابق النص المعروض."
+                  }
+                ]
+              },
+              "component_id": "loc1",
+              "evidence_span": "ان الصفا والمروه من شعاير الله",
+              "assessed_by": "deterministic"
+            }
+          ],
+          "supported_components": [
+            {
+              "component_text": "إن الصفا والمروة من شعائر الله",
+              "evidence_ids": [
+                "mizan-ev:quran:1:165"
+              ]
+            }
+          ],
+          "unsupported_components": [],
+          "contradicted_components": [
+            {
+              "component_text": "سورة آل عمران",
+              "evidence_ids": [
+                "mizan-ev:quran:1:165"
+              ]
+            }
+          ],
+          "evidence_conflicts": [],
+          "attributed_rulings": [],
+          "components": [
+            {
+              "component_id": "q1",
+              "text": "إن الصفا والمروة من شعائر الله",
+              "kind": "quran_quote",
+              "role": "substantive",
+              "claim_type": "quran",
+              "outcome": "supported",
+              "evidence_ids": [
+                "mizan-ev:quran:1:165"
+              ],
+              "verified_location": [
+                {
+                  "surah_number": 2,
+                  "ayah_number": 158,
+                  "quranpedia_ayah_id": 165
+                }
+              ],
+              "detail": null
+            },
+            {
+              "component_id": "loc1",
+              "text": "سورة آل عمران",
+              "kind": "quran_location",
+              "role": "substantive",
+              "claim_type": "quran",
+              "outcome": "contradicted",
+              "evidence_ids": [
+                "mizan-ev:quran:1:165"
+              ],
+              "verified_location": [
+                {
+                  "surah_number": 2,
+                  "ayah_number": 158,
+                  "quranpedia_ayah_id": 165
+                }
+              ],
+              "detail": "الموضع الصحيح الموثّق: سورة البقرة، الآية 158"
+            }
+          ],
+          "related_unverified_addresses": []
+        },
+        "validation": {
+          "claim_id": "c1",
+          "outcome": "pass",
+          "checks": [
+            {
+              "check": "uses_confirmed_claim_text",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "evidence_relates_to_claim",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "source_approved_and_qualified",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "evidence_traceable",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "references_from_verified_metadata",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "status_matches_evidence",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "wording_not_stronger_than_evidence",
+              "passed": true,
+              "detail": null
+            }
+          ],
+          "retry_count": 0,
+          "retry_reason": null,
+          "abstained_to": null
+        },
+        "evidence": [
+          {
+            "evidence_id": "mizan-ev:quran:1:165",
+            "source_type": "quran",
+            "text": "إِنَّ الصَّفَا وَالْمَرْوَةَ مِنْ شَعَائِرِ اللَّهِ ۖ فَمَنْ حَجَّ الْبَيْتَ أَوِ اعْتَمَرَ فَلَا جُنَاحَ عَلَيْهِ أَنْ يَطَّوَّفَ بِهِمَا",
+            "source_name": "القرآن الكريم",
+            "provider": "quranpedia",
+            "trusted_source_id": "quran",
+            "reference": "سورة البقرة، الآية 158",
+            "source_address": "/v1/mushafs/1/2/158",
+            "source_url": "https://api.quranpedia.net/v1/mushafs/1/2/158",
+            "source_record_id": "165",
+            "retrieval_channel": "official_dump",
+            "source_version": "2026-10-02",
+            "retrieved_at": "2026-10-05T10:20:18.453649Z",
+            "text_sha256": "4150d865a629d68a2c1b3a54256fc2e5150002ccbb3b4d08ac044b65dbbaca32",
+            "text_transform": "quranpedia_ayah_text_strip_bom_v1",
+            "metadata": {
+              "source_type": "quran",
+              "mushaf_id": 1,
+              "quranpedia_ayah_id": 165,
+              "surah_number": 2,
+              "surah_name_ar": "سورة البقرة",
+              "ayah_number": 158,
+              "ayah_text": "إِنَّ الصَّفَا وَالْمَرْوَةَ مِنْ شَعَائِرِ اللَّهِ ۖ فَمَنْ حَجَّ الْبَيْتَ أَوِ اعْتَمَرَ فَلَا جُنَاحَ عَلَيْهِ أَنْ يَطَّوَّفَ بِهِمَا",
+              "text_form": "mushaf_diacritized",
+              "ayah_text_normalized": "ان الصفا والمروه من شعاير الله فمن حج البيت او اعتمر فلا جناح عليه ان يطوف بهما",
+              "dump_version": "2026-10-02"
+            }
+          }
+        ],
+        "result_group": "do_not_use_as_written",
+        "why": "«إن الصفا والمروة من شعائر الله» يثبته نص صريح في القرآن الكريم. «سورة آل عمران» يخالفه القرآن الكريم. الموضع الصحيح الموثّق: سورة البقرة، الآية 158.",
+        "what_to_do": "لا تنشر الادعاء بصيغته الحالية: صحّح الجزء المخالف أو احذفه، ويمكنك طلب صياغة بديلة يعيد ميزان التحقق منها.",
+        "verified_reference": "سورة البقرة، الآية 158",
+        "limitations": []
+      }
+    ],
+    "limitations": []
+  },
+  "verify_conflicting_tafsir": {
+    "run_id": "72e7b1ad-777c-427b-8dae-9c3ca3305721",
+    "created_at": "2026-10-05T10:20:18.462202Z",
+    "outcomes": [
+      {
+        "kind": "verification",
+        "claim_id": "c1",
+        "confirmed_claim_text": "معنى «لا تأخذه سنة ولا نوم» أن الله لا يأخذه نعاس",
+        "status": "conflicting_evidence",
+        "analysis": {
+          "claim_id": "c1",
+          "assessments": [
+            {
+              "evidence_id": "mizan-ev:tafsir_al_muyassar:2:255:07bfee0369dab2ba",
+              "relationship": "supports",
+              "claim_component": "لا يأخذه نعاس",
+              "supported_part": null,
+              "unsupported_part": null,
+              "rationale": "r",
+              "strength": {
+                "observations": [
+                  {
+                    "signal": "source_suitability",
+                    "basis": "التفسير الميسر: مصدر معتمد ومؤهل لادعاءات التفسير."
+                  },
+                  {
+                    "signal": "directness",
+                    "basis": "النص المستشهد به يذكر مضمون هذا الجزء مباشرة."
+                  },
+                  {
+                    "signal": "traceability",
+                    "basis": "له عنوان رسمي لدى المزوّد وبصمة تطابق النص المعروض."
+                  }
+                ]
+              },
+              "component_id": "s1",
+              "evidence_span": "الله الذي لا يستحق الألوهية إلا هو، الحي الذي لا تأخذه سنة أي: نعاس ولا نوم",
+              "assessed_by": "llm_analysis"
+            },
+            {
+              "evidence_id": "mizan-ev:tafsir_ibn_kathir:2:255:bdc51cb34f2c0f31",
+              "relationship": "contradicts",
+              "claim_component": "لا يأخذه نعاس",
+              "supported_part": null,
+              "unsupported_part": null,
+              "rationale": "r",
+              "strength": {
+                "observations": [
+                  {
+                    "signal": "source_suitability",
+                    "basis": "تفسير ابن كثير: مصدر معتمد ومؤهل لادعاءات التفسير."
+                  },
+                  {
+                    "signal": "directness",
+                    "basis": "النص المستشهد به يخالف هذا الجزء مباشرة."
+                  },
+                  {
+                    "signal": "traceability",
+                    "basis": "له عنوان رسمي لدى المزوّد وبصمة تطابق النص المعروض."
+                  }
+                ]
+              },
+              "component_id": "s1",
+              "evidence_span": "قوله لا تأخذه سنة ولا نوم أي لا يغلبه نعاس ولا نوم",
+              "assessed_by": "llm_analysis"
+            }
+          ],
+          "supported_components": [],
+          "unsupported_components": [],
+          "contradicted_components": [],
+          "evidence_conflicts": [
+            {
+              "evidence_ids": [
+                "mizan-ev:tafsir_al_muyassar:2:255:07bfee0369dab2ba",
+                "mizan-ev:tafsir_ibn_kathir:2:255:bdc51cb34f2c0f31"
+              ],
+              "description": "أدلة معتمدة متعارضة بشأن: لا يأخذه نعاس"
+            }
+          ],
+          "attributed_rulings": [],
+          "components": [
+            {
+              "component_id": "s1",
+              "text": "لا يأخذه نعاس",
+              "kind": "statement",
+              "role": "substantive",
+              "claim_type": "tafsir",
+              "outcome": "conflicting",
+              "evidence_ids": [
+                "mizan-ev:tafsir_al_muyassar:2:255:07bfee0369dab2ba",
+                "mizan-ev:tafsir_ibn_kathir:2:255:bdc51cb34f2c0f31"
+              ],
+              "verified_location": [],
+              "detail": null
+            }
+          ],
+          "related_unverified_addresses": []
+        },
+        "validation": {
+          "claim_id": "c1",
+          "outcome": "pass",
+          "checks": [
+            {
+              "check": "uses_confirmed_claim_text",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "evidence_relates_to_claim",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "source_approved_and_qualified",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "evidence_traceable",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "references_from_verified_metadata",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "status_matches_evidence",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "wording_not_stronger_than_evidence",
+              "passed": true,
+              "detail": null
+            }
+          ],
+          "retry_count": 0,
+          "retry_reason": null,
+          "abstained_to": null
+        },
+        "evidence": [
+          {
+            "evidence_id": "mizan-ev:tafsir_al_muyassar:2:255:07bfee0369dab2ba",
+            "source_type": "tafsir",
+            "text": "الله الذي لا يستحق الألوهية إلا هو، الحي الذي لا تأخذه سنة أي: نعاس ولا نوم",
+            "source_name": "التفسير الميسر",
+            "provider": "quranpedia",
+            "trusted_source_id": "tafsir_al_muyassar",
+            "reference": "التفسير الميسر — سورة البقرة، الآية 255",
+            "source_address": "/v1/ayah/2/255/book/2012",
+            "source_url": "https://api.quranpedia.net/v1/ayah/2/255/book/2012",
+            "source_record_id": null,
+            "retrieval_channel": "live_api",
+            "source_version": null,
+            "retrieved_at": "2026-10-05T10:20:18.461574Z",
+            "text_sha256": "07bfee0369dab2ba6cde7dfed1ba63a20c45c9ac9507754611365598126fead8",
+            "text_transform": "quranpedia_html_to_text_v1",
+            "metadata": {
+              "provider_book_id": 2012,
+              "provider_book_name": "التفسير الميسر",
+              "provider_author": null,
+              "requested_ayah": {
+                "surah_number": 2,
+                "ayah_number": 255,
+                "quranpedia_ayah_id": 262
+              },
+              "surah_name_ar": "سورة البقرة",
+              "associated_ayahs": [
+                {
+                  "surah_number": 2,
+                  "ayah_number": 255,
+                  "quranpedia_ayah_id": 262
+                }
+              ],
+              "provider_ayah_association": "262",
+              "provider_part": "1",
+              "provider_page": "5",
+              "page_kind": "none",
+              "position_in_response": 0,
+              "source_type": "tafsir"
+            }
+          },
+          {
+            "evidence_id": "mizan-ev:tafsir_ibn_kathir:2:255:bdc51cb34f2c0f31",
+            "source_type": "tafsir",
+            "text": "قوله لا تأخذه سنة ولا نوم أي لا يغلبه نعاس ولا نوم",
+            "source_name": "تفسير ابن كثير",
+            "provider": "quranpedia",
+            "trusted_source_id": "tafsir_ibn_kathir",
+            "reference": "تفسير القرآن العظيم، الجزء 1، الصفحة 5 — سورة البقرة، الآية 255",
+            "source_address": "/v1/ayah/2/255/book/136",
+            "source_url": "https://api.quranpedia.net/v1/ayah/2/255/book/136",
+            "source_record_id": null,
+            "retrieval_channel": "live_api",
+            "source_version": null,
+            "retrieved_at": "2026-10-05T10:20:18.461794Z",
+            "text_sha256": "bdc51cb34f2c0f31b6fd759dcf2f70d6fd8d3637d4dfe35cb14724e9a93d8d1c",
+            "text_transform": "quranpedia_html_to_text_v1",
+            "metadata": {
+              "provider_book_id": 136,
+              "provider_book_name": "تفسير القرآن العظيم",
+              "provider_author": null,
+              "requested_ayah": {
+                "surah_number": 2,
+                "ayah_number": 255,
+                "quranpedia_ayah_id": 262
+              },
+              "surah_name_ar": "سورة البقرة",
+              "associated_ayahs": [
+                {
+                  "surah_number": 2,
+                  "ayah_number": 255,
+                  "quranpedia_ayah_id": 262
+                }
+              ],
+              "provider_ayah_association": "262",
+              "provider_part": "1",
+              "provider_page": "5",
+              "page_kind": "printed",
+              "position_in_response": 0,
+              "source_type": "tafsir"
+            }
+          }
+        ],
+        "result_group": "needs_evidence_review",
+        "why": "بشأن «لا يأخذه نعاس»: يؤيده التفسير الميسر ويخالفه تفسير ابن كثير؛ فالأدلة المعتمدة متعارضة.",
+        "what_to_do": "راجع الأدلة المتعارضة المعروضة وارجع إلى أهل العلم قبل النشر؛ لم يُصدر ميزان حكمًا قاطعًا لأن المصادر المعتمدة نفسها مختلفة.",
+        "verified_reference": null,
+        "limitations": []
+      }
+    ],
+    "limitations": []
+  },
+  "verify_supported_tafsir_with_limitation": {
+    "run_id": "fa8fad15-9541-434c-95f7-5083a6d27f8f",
+    "created_at": "2026-10-05T10:20:18.467018Z",
+    "outcomes": [
+      {
+        "kind": "verification",
+        "claim_id": "c1",
+        "confirmed_claim_text": "معنى «لا تأخذه سنة ولا نوم» أن الله لا يأخذه نعاس",
+        "status": "supported",
+        "analysis": {
+          "claim_id": "c1",
+          "assessments": [
+            {
+              "evidence_id": "mizan-ev:tafsir_al_muyassar:2:255:07bfee0369dab2ba",
+              "relationship": "supports",
+              "claim_component": "لا يأخذه نعاس",
+              "supported_part": null,
+              "unsupported_part": null,
+              "rationale": "r",
+              "strength": {
+                "observations": [
+                  {
+                    "signal": "source_suitability",
+                    "basis": "التفسير الميسر: مصدر معتمد ومؤهل لادعاءات التفسير."
+                  },
+                  {
+                    "signal": "directness",
+                    "basis": "النص المستشهد به يذكر مضمون هذا الجزء مباشرة."
+                  },
+                  {
+                    "signal": "traceability",
+                    "basis": "له عنوان رسمي لدى المزوّد وبصمة تطابق النص المعروض."
+                  }
+                ]
+              },
+              "component_id": "s1",
+              "evidence_span": "الله الذي لا يستحق الألوهية إلا هو، الحي الذي لا تأخذه سنة أي: نعاس ولا نوم",
+              "assessed_by": "llm_analysis"
+            }
+          ],
+          "supported_components": [
+            {
+              "component_text": "لا يأخذه نعاس",
+              "evidence_ids": [
+                "mizan-ev:tafsir_al_muyassar:2:255:07bfee0369dab2ba"
+              ]
+            }
+          ],
+          "unsupported_components": [],
+          "contradicted_components": [],
+          "evidence_conflicts": [],
+          "attributed_rulings": [],
+          "components": [
+            {
+              "component_id": "s1",
+              "text": "لا يأخذه نعاس",
+              "kind": "statement",
+              "role": "substantive",
+              "claim_type": "tafsir",
+              "outcome": "supported",
+              "evidence_ids": [
+                "mizan-ev:tafsir_al_muyassar:2:255:07bfee0369dab2ba"
+              ],
+              "verified_location": [],
+              "detail": null
+            }
+          ],
+          "related_unverified_addresses": []
+        },
+        "validation": {
+          "claim_id": "c1",
+          "outcome": "pass",
+          "checks": [
+            {
+              "check": "uses_confirmed_claim_text",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "evidence_relates_to_claim",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "source_approved_and_qualified",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "evidence_traceable",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "references_from_verified_metadata",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "status_matches_evidence",
+              "passed": true,
+              "detail": null
+            },
+            {
+              "check": "wording_not_stronger_than_evidence",
+              "passed": true,
+              "detail": null
+            }
+          ],
+          "retry_count": 0,
+          "retry_reason": null,
+          "abstained_to": null
+        },
+        "evidence": [
+          {
+            "evidence_id": "mizan-ev:tafsir_al_muyassar:2:255:07bfee0369dab2ba",
+            "source_type": "tafsir",
+            "text": "الله الذي لا يستحق الألوهية إلا هو، الحي الذي لا تأخذه سنة أي: نعاس ولا نوم",
+            "source_name": "التفسير الميسر",
+            "provider": "quranpedia",
+            "trusted_source_id": "tafsir_al_muyassar",
+            "reference": "التفسير الميسر — سورة البقرة، الآية 255",
+            "source_address": "/v1/ayah/2/255/book/2012",
+            "source_url": "https://api.quranpedia.net/v1/ayah/2/255/book/2012",
+            "source_record_id": null,
+            "retrieval_channel": "live_api",
+            "source_version": null,
+            "retrieved_at": "2026-10-05T10:20:18.466671Z",
+            "text_sha256": "07bfee0369dab2ba6cde7dfed1ba63a20c45c9ac9507754611365598126fead8",
+            "text_transform": "quranpedia_html_to_text_v1",
+            "metadata": {
+              "provider_book_id": 2012,
+              "provider_book_name": "التفسير الميسر",
+              "provider_author": null,
+              "requested_ayah": {
+                "surah_number": 2,
+                "ayah_number": 255,
+                "quranpedia_ayah_id": 262
+              },
+              "surah_name_ar": "سورة البقرة",
+              "associated_ayahs": [
+                {
+                  "surah_number": 2,
+                  "ayah_number": 255,
+                  "quranpedia_ayah_id": 262
+                }
+              ],
+              "provider_ayah_association": "262",
+              "provider_part": "1",
+              "provider_page": "5",
+              "page_kind": "none",
+              "position_in_response": 0,
+              "source_type": "tafsir"
+            }
+          }
+        ],
+        "result_group": "verified",
+        "why": "«لا يأخذه نعاس» يثبته نص صريح في التفسير الميسر.",
+        "what_to_do": "يمكنك استخدام الادعاء بصيغته الحالية مع ذكر المصدر والمرجع المعروضين.",
+        "verified_reference": null,
+        "limitations": [
+          "لا يتضمن «تفسير ابن كثير» لدى المزوّد نصًا للآية المعنية، فلم يُستخدم في هذا التحقق."
+        ]
+      }
+    ],
+    "limitations": [
+      "لا يتضمن «تفسير ابن كثير» لدى المزوّد نصًا للآية المعنية، فلم يُستخدم في هذا التحقق."
+    ]
+  },
+  "verify_hadith_unavailable": {
+    "run_id": "27254106-48aa-40ef-b9d9-8e73335784ae",
+    "created_at": "2026-10-05T10:20:18.471093Z",
+    "outcomes": [
+      {
+        "kind": "required_source_unavailable",
+        "claim_id": "c1",
+        "confirmed_claim_text": "قال رسول الله ﷺ: «إنما الأعمال بالنيات»",
+        "required_claim_types": [
+          "hadith"
+        ],
+        "unavailable_sources": [
+          "dorar_hadith"
+        ],
+        "detail": "يتطلب هذا الادعاء مصدرًا معتمدًا غير متاح حاليًا في ميزان؛ لذلك لم يُصدر ميزان حكمًا عليه. غياب الدليل هنا لا يعني أن الادعاء غير صحيح."
+      }
+    ],
+    "limitations": []
+  },
+  "verify_out_of_scope": {
+    "run_id": "00bcd76f-7516-4a56-b0f3-b7b611afaa73",
+    "created_at": "2026-10-05T10:20:18.475128Z",
+    "outcomes": [
+      {
+        "kind": "out_of_scope",
+        "claim_id": "c1",
+        "reason": "unsupported_claim_category",
+        "detail": "claim is not about Quran text, tafsir, asbab al-nuzul or hadith"
+      }
+    ],
+    "limitations": []
+  },
+  "verify_system_error": {
+    "run_id": "a41b7736-bad1-4cbd-940c-e0bbce10e27d",
+    "created_at": "2026-10-05T10:20:18.480020Z",
+    "outcomes": [
+      {
+        "kind": "system_error",
+        "claim_id": "c1",
+        "error": {
+          "code": "verification_incomplete",
+          "stage": "hybrid_retrieval",
+          "message": "Verification could not be completed reliably",
+          "retryable": true
+        }
+      }
+    ],
+    "limitations": []
+  },
+  "alternative_verified": {
+    "kind": "alternative_wording",
+    "original_claim_id": "c1",
+    "run_id": "07468bf0-bd5a-416a-b8ce-fd86b8e7c62f:alt",
+    "proposed_text": "قال تعالى في سورة البقرة: «إن الصفا والمروة من شعائر الله»",
+    "verified": true,
+    "outcome": {
+      "kind": "verification",
+      "claim_id": "c1:alt",
+      "confirmed_claim_text": "قال تعالى في سورة البقرة: «إن الصفا والمروة من شعائر الله»",
+      "status": "supported",
+      "analysis": {
+        "claim_id": "c1:alt",
+        "assessments": [
+          {
+            "evidence_id": "mizan-ev:quran:1:165",
+            "relationship": "supports",
+            "claim_component": "إن الصفا والمروة من شعائر الله",
+            "supported_part": null,
+            "unsupported_part": null,
+            "rationale": "النص المقتبس مطابق لنص الآية في المصحف (بعد تطبيع المطابقة فقط).",
+            "strength": {
+              "observations": [
+                {
+                  "signal": "source_suitability",
+                  "basis": "القرآن الكريم: مصدر معتمد ومؤهل لادعاءات نص القرآن وموضعه."
+                },
+                {
+                  "signal": "directness",
+                  "basis": "النص المستشهد به يذكر مضمون هذا الجزء مباشرة."
+                },
+                {
+                  "signal": "traceability",
+                  "basis": "له عنوان رسمي لدى المزوّد وبصمة تطابق النص المعروض."
+                }
+              ]
+            },
+            "component_id": "q1",
+            "evidence_span": "ان الصفا والمروه من شعاير الله",
+            "assessed_by": "deterministic"
+          },
+          {
+            "evidence_id": "mizan-ev:quran:1:165",
+            "relationship": "supports",
+            "claim_component": "سورة البقرة",
+            "supported_part": null,
+            "unsupported_part": null,
+            "rationale": "الموضع المذكور مطابق لموضع النص في المصحف.",
+            "strength": {
+              "observations": [
+                {
+                  "signal": "source_suitability",
+                  "basis": "القرآن الكريم: مصدر معتمد ومؤهل لادعاءات نص القرآن وموضعه."
+                },
+                {
+                  "signal": "directness",
+                  "basis": "النص المستشهد به يذكر مضمون هذا الجزء مباشرة."
+                },
+                {
+                  "signal": "traceability",
+                  "basis": "له عنوان رسمي لدى المزوّد وبصمة تطابق النص المعروض."
+                }
+              ]
+            },
+            "component_id": "loc1",
+            "evidence_span": "ان الصفا والمروه من شعاير الله",
+            "assessed_by": "deterministic"
+          }
+        ],
+        "supported_components": [
+          {
+            "component_text": "إن الصفا والمروة من شعائر الله",
+            "evidence_ids": [
+              "mizan-ev:quran:1:165"
+            ]
+          },
+          {
+            "component_text": "سورة البقرة",
+            "evidence_ids": [
+              "mizan-ev:quran:1:165"
+            ]
+          }
+        ],
+        "unsupported_components": [],
+        "contradicted_components": [],
+        "evidence_conflicts": [],
+        "attributed_rulings": [],
+        "components": [
+          {
+            "component_id": "q1",
+            "text": "إن الصفا والمروة من شعائر الله",
+            "kind": "quran_quote",
+            "role": "substantive",
+            "claim_type": "quran",
+            "outcome": "supported",
+            "evidence_ids": [
+              "mizan-ev:quran:1:165"
+            ],
+            "verified_location": [
+              {
+                "surah_number": 2,
+                "ayah_number": 158,
+                "quranpedia_ayah_id": 165
+              }
+            ],
+            "detail": null
+          },
+          {
+            "component_id": "loc1",
+            "text": "سورة البقرة",
+            "kind": "quran_location",
+            "role": "substantive",
+            "claim_type": "quran",
+            "outcome": "supported",
+            "evidence_ids": [
+              "mizan-ev:quran:1:165"
+            ],
+            "verified_location": [
+              {
+                "surah_number": 2,
+                "ayah_number": 158,
+                "quranpedia_ayah_id": 165
+              }
+            ],
+            "detail": null
+          }
+        ],
+        "related_unverified_addresses": []
+      },
+      "validation": {
+        "claim_id": "c1:alt",
+        "outcome": "pass",
+        "checks": [
+          {
+            "check": "uses_confirmed_claim_text",
+            "passed": true,
+            "detail": null
+          },
+          {
+            "check": "evidence_relates_to_claim",
+            "passed": true,
+            "detail": null
+          },
+          {
+            "check": "source_approved_and_qualified",
+            "passed": true,
+            "detail": null
+          },
+          {
+            "check": "evidence_traceable",
+            "passed": true,
+            "detail": null
+          },
+          {
+            "check": "references_from_verified_metadata",
+            "passed": true,
+            "detail": null
+          },
+          {
+            "check": "status_matches_evidence",
+            "passed": true,
+            "detail": null
+          },
+          {
+            "check": "wording_not_stronger_than_evidence",
+            "passed": true,
+            "detail": null
+          }
+        ],
+        "retry_count": 0,
+        "retry_reason": null,
+        "abstained_to": null
+      },
+      "evidence": [
+        {
+          "evidence_id": "mizan-ev:quran:1:165",
+          "source_type": "quran",
+          "text": "إِنَّ الصَّفَا وَالْمَرْوَةَ مِنْ شَعَائِرِ اللَّهِ ۖ فَمَنْ حَجَّ الْبَيْتَ أَوِ اعْتَمَرَ فَلَا جُنَاحَ عَلَيْهِ أَنْ يَطَّوَّفَ بِهِمَا",
+          "source_name": "القرآن الكريم",
+          "provider": "quranpedia",
+          "trusted_source_id": "quran",
+          "reference": "سورة البقرة، الآية 158",
+          "source_address": "/v1/mushafs/1/2/158",
+          "source_url": "https://api.quranpedia.net/v1/mushafs/1/2/158",
+          "source_record_id": "165",
+          "retrieval_channel": "official_dump",
+          "source_version": "2026-10-02",
+          "retrieved_at": "2026-10-05T10:20:18.456839Z",
+          "text_sha256": "4150d865a629d68a2c1b3a54256fc2e5150002ccbb3b4d08ac044b65dbbaca32",
+          "text_transform": "quranpedia_ayah_text_strip_bom_v1",
+          "metadata": {
+            "source_type": "quran",
+            "mushaf_id": 1,
+            "quranpedia_ayah_id": 165,
+            "surah_number": 2,
+            "surah_name_ar": "سورة البقرة",
+            "ayah_number": 158,
+            "ayah_text": "إِنَّ الصَّفَا وَالْمَرْوَةَ مِنْ شَعَائِرِ اللَّهِ ۖ فَمَنْ حَجَّ الْبَيْتَ أَوِ اعْتَمَرَ فَلَا جُنَاحَ عَلَيْهِ أَنْ يَطَّوَّفَ بِهِمَا",
+            "text_form": "mushaf_diacritized",
+            "ayah_text_normalized": "ان الصفا والمروه من شعاير الله فمن حج البيت او اعتمر فلا جناح عليه ان يطوف بهما",
+            "dump_version": "2026-10-02"
+          }
+        }
+      ],
+      "result_group": "verified",
+      "why": "«إن الصفا والمروة من شعائر الله» يثبته نص صريح في القرآن الكريم. «سورة البقرة» يثبته نص صريح في القرآن الكريم.",
+      "what_to_do": "يمكنك استخدام الادعاء بصيغته الحالية مع ذكر المصدر والمرجع المعروضين.",
+      "verified_reference": "سورة البقرة، الآية 158",
+      "limitations": []
+    }
+  }
+}

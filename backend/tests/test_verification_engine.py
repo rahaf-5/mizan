@@ -164,6 +164,68 @@ async def test_correct_quote_wrong_surah_is_contradicted_with_details_preserved(
     assert_traceable(o)
 
 
+async def test_verified_reference_comes_from_the_quran_record_and_user_text_is_untouched():
+    text = "قال تعالى في سورة آل عمران: «إن الصفا والمروة من شعائر الله»"
+    o = await run(text, ScriptedLLM(cls(ClaimType.QURAN)))
+    quran_refs = {e.reference for e in o.evidence if e.source_type.value == "quran"}
+    assert o.verified_reference == "سورة البقرة، الآية 158"
+    assert o.verified_reference in quran_refs  # copied from the record, never composed
+    assert o.confirmed_claim_text == text  # the user's reference is not silently corrected
+
+
+async def test_no_verified_reference_without_a_verified_quran_location():
+    o = await run(
+        "قال تعالى: «وتعاونوا على الخير ففي ذلك الفلاح المبين»", ScriptedLLM(cls(ClaimType.QURAN))
+    )
+    assert o.verified_reference is None and o.limitations == []
+
+
+async def test_source_without_text_for_the_ayah_is_surfaced_as_a_limitation():
+    def gap(r: httpx.Request) -> httpx.Response:
+        if r.url.path.endswith("/book/136"):
+            return httpx.Response(200, json={"book": {"id": 136, "name": "ك"}, "content": []})
+        return handler(r)
+
+    def judge(label, source):
+        if "الميسر" in source:
+            return AnalysisRelation.SUPPORTS, "لا تأخذه سنة أي: نعاس"
+        return AnalysisRelation.INSUFFICIENT, None
+
+    o = await run(
+        TAFSIR_CLAIM,
+        ScriptedLLM(cls(ClaimType.TAFSIR), analysis_for(judge)),
+        reg=registry(handler=gap),
+    )
+    assert o.status == VerificationStatus.SUPPORTED  # a limitation never changes the verdict
+    assert len(o.limitations) == 1 and "تفسير ابن كثير" in o.limitations[0]
+
+
+async def test_run_level_limitations_are_the_union_of_claim_limitations():
+    def gap(r: httpx.Request) -> httpx.Response:
+        if r.url.path.endswith("/book/136"):
+            return httpx.Response(200, json={"book": {"id": 136, "name": "ك"}, "content": []})
+        return handler(r)
+
+    def judge(label, source):
+        if "الميسر" in source:
+            return AnalysisRelation.SUPPORTS, "لا تأخذه سنة أي: نعاس"
+        return AnalysisRelation.INSUFFICIENT, None
+
+    pipe = build_verification_pipeline(
+        Settings(verification_max_retries=2),
+        ScriptedLLM(cls(ClaimType.TAFSIR), analysis_for(judge)),
+        registry(handler=gap),
+    )
+    claim = ConfirmedClaim(
+        claim_id="c1",
+        confirmed_claim_text=TAFSIR_CLAIM,
+        user_confirmation_status=UserConfirmationStatus.CONFIRMED,
+    )
+    result = await pipe.run_confirmed([claim])
+    [o] = result.outcomes
+    assert o.limitations and result.limitations == o.limitations
+
+
 async def test_fabricated_quote_is_no_evidence_not_contradiction():
     o = await run(
         "قال تعالى: «وتعاونوا على الخير ففي ذلك الفلاح المبين»", ScriptedLLM(cls(ClaimType.QURAN))
