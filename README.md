@@ -82,6 +82,9 @@ at the repo root, and set `DATABASE_URL` in `backend/.env`.
 
 ## Try it
 
+Quick start for a demo on macOS: double-click `scripts/start-demo.command` (starts the backend
+on :8000 and a production frontend on :3000, then opens http://localhost:3000; close the window to stop).
+
 1. Open http://localhost:3000 → **فحص سريع** → type
    `قال تعالى في سورة آل عمران: «إن الصفا والمروة من شعائر الله»` → **تحقق من الادعاء**.
    Expected: **يخالف الدليل** — the quote exists, but in سورة البقرة 158; open
