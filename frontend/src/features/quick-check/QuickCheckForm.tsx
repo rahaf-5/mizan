@@ -102,16 +102,27 @@ export function QuickCheckForm() {
     const claim = prepared.confirmedClaim;
     return (
       <div className="space-y-5">
-        <VerificationReport runKey={`quick:${claim.claim_id}`} claims={[claim]} />
-        <Button
-          variant="secondary"
-          onClick={() => {
-            dispatch({ type: "verification/clear" });
-            dispatch({ type: "prepared/clear" });
-          }}
-        >
-          {t.quickCheck.editClaim}
-        </Button>
+        <VerificationReport runKey={`quick:${claim.claim_id}`} claims={[claim]} variant="single" />
+        <div className="flex flex-wrap gap-3">
+          <Button
+            onClick={() => {
+              dispatch({ type: "verification/clear" });
+              dispatch({ type: "prepared/clear" });
+              dispatch({ type: "quickCheck/setText", text: "" });
+            }}
+          >
+            {t.results.newCheck}
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              dispatch({ type: "verification/clear" });
+              dispatch({ type: "prepared/clear" });
+            }}
+          >
+            {t.quickCheck.editClaim}
+          </Button>
+        </div>
       </div>
     );
   }

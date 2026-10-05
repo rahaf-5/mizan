@@ -44,24 +44,31 @@ Text input → «استخراج الادعاءات» → POST /claims/extract (e
 Changing the review after confirmation clears the confirmation and any results, so a stale
 report can never be shown for edited claims.
 
-## Report structure (spec §12)
+## Result experience (progressive disclosure, 2026-10-05)
 
-1. **Progress** (while running): «جارٍ التحقق من الادعاء i من n» with each claim's state
-   (في الانتظار / جارٍ التحقق / اكتمل / تعذّر).
-2. **ملخص التقرير**: total and per-section counts.
-3. **Sections** (only non-empty ones, in this order): محتوى تم التحقق منه · لا تستخدم هذه
-   الادعاءات بصيغتها الحالية · تحتاج مراجعة قبل النشر · تحتاج مراجعة الأدلة · لا يمكن التحقق منها
-   حاليًا · تعذّر التحقق بسبب مشكلة تقنية.
-4. **Claim card**: claim text → status badge (icon + text, never colour only) → «لماذا هذه
-   ميزان هنا؟» → «ماذا تفعل؟» → what Mizan checked in the claim (per component) → conflict note →
-   «الموضع الموثّق في المصحف» (from the Quran record; the claim text is never rewritten) →
-   «حدود هذه النتيجة» (e.g. a source without text for the ayah) →
-   «عرض الأدلة والمصادر (n)» → «اقترح صياغة بديلة» (only for partially supported / contradicted).
-5. **Evidence card**: «النص من المصدر» (verbatim provider text, its own region) → «المقطع الذي
-   استند إليه ميزان» → relation to the claim → «شرح ميزان» (labelled as automated analysis or
-   literal matching, not part of the source) → strength signals (no score) → reference,
-   provider, author (as given by the provider, or «غير مذكور لدى المزوّد»), asbab relation type
-   («غير محدد لدى المزوّد»), link to the original provider record.
+One result card is used by Quick Check and by every claim in Full Content. Each piece of
+information appears once:
+
+1. **Decision** — status badge (icon + text, never colour only), the exact status.
+2. **Claim** — shown once.
+3. **«لماذا هذه النتيجة؟»** — plain explanation built only from the result (`explainResult`).
+4. **«ماذا تفعل؟»** — one short action for the status; «اقترح صياغة بديلة» appears here only
+   for partially supported / contradicted results, and a proposal is shown as trusted only after
+   full re-verification. Technical failures show «إعادة التحقق» here.
+5. **«الأدلة التي اعتمد عليها ميزان»** — preview «المصدر — الموضع» only, then one button
+   «عرض الأدلة والتفاصيل». No section and no button when no evidence was used.
+6. **Details (on request)** — per evidence: المصدر, the verbatim passage Mizan relied on (or the
+   record's own text), المرجع, المصدر الأصلي (link to the original record). Conflicting evidence is
+   grouped «أدلة تؤيد / أدلة تخالف / أدلة أخرى». «حدود هذا التحقق» appears here only when a
+   limitation exists. Technical fields (fingerprints, internal ids) stay in the data, not the UI.
+
+**Quick Check:** progress, then the single card, then «فحص جديد» / «تعديل الادعاء». No dashboard.
+
+**Full Content:** progress, then «ملخص التقرير» (number of claims + tiles: يمكن استخدامها ·
+تحتاج تعديلًا أو مراجعة · لا تُستخدم بصيغتها الحالية · تعذّر التحقق منها حاليًا [only if any]), then
+the cards grouped under the same four headings. Mapping (presentation only): supported → usable;
+partially supported / insufficient / no evidence / conflicting → needs review; contradicted → do
+not use; source unavailable / out of scope / technical failure → could not verify now.
 
 ## UX states
 

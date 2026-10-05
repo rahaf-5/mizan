@@ -15,8 +15,6 @@ import {
   QURAN_EVIDENCE,
   supported,
   systemError,
-  TAFSIR_EVIDENCE,
-  IBN_KATHIR_EVIDENCE,
 } from "../fixtures/outcomes";
 import { jsonResponse, renderWithSession } from "../helpers";
 
@@ -87,8 +85,8 @@ describe("Full Content results", () => {
     expect(bodies.map((b) => b.claims.map((c: ConfirmedClaim) => c.claim_id))).toEqual([["a"], ["c4"]]);
     expect(bodies[0].claims[0].confirmed_claim_text).toBe("أ");
     expect(screen.getByText("ملخص التقرير")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /محتوى تم التحقق منه/ })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /تحتاج مراجعة الأدلة/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /يمكن استخدامها \(1\)/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /تحتاج تعديلًا أو مراجعة \(1\)/ })).toBeInTheDocument();
   });
 
   it("renders every outcome kind with its own status, why and what-to-do — never mixed", async () => {
@@ -105,12 +103,10 @@ describe("Full Content results", () => {
     await waitFor(() => expect(screen.queryByText(/جارٍ التحقق من الادعاء/)).toBeNull());
 
     expect(screen.getByText("يخالف الدليل")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /لا تستخدم هذه الادعاءات بصيغتها الحالية/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /لا تُستخدم بصيغتها الحالية \(1\)/ })).toBeInTheDocument();
     expect(screen.getByText("أدلة متعارضة")).toBeInTheDocument();
-    expect(screen.getByText("لماذا لم يُصدر ميزان حكمًا قاطعًا؟")).toBeInTheDocument();
     expect(screen.getByText("لم يُعثر على دليل")).toBeInTheDocument();
     expect(screen.getByText(/عدم العثور على دليل لا يعني أن الادعاء خاطئ/)).toBeInTheDocument();
-    expect(screen.getByText(/وجد البحث 1 نتيجة مرتبطة بالكلمات فقط/)).toBeInTheDocument();
 
     // Hadith: unavailable source, explicitly no verdict and no invented grading.
     expect(screen.getByText("المصدر المطلوب غير متاح حاليًا")).toBeInTheDocument();
@@ -120,72 +116,76 @@ describe("Full Content results", () => {
     expect(screen.getByText("خارج نطاق ميزان حاليًا")).toBeInTheDocument();
     // Technical failure shows no verdict about the claim.
     expect(screen.getByText("تعذّر إكمال التحقق")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /تعذّر التحقق بسبب مشكلة تقنية/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /تعذّر التحقق منها حاليًا \(3\)/ })).toBeInTheDocument();
+    // Summary by decision; each card keeps its exact status.
+    const tile = (d: string) => document.querySelector(`li[data-decision="${d}"] p`)?.textContent;
+    expect([tile("usable"), tile("needs_review"), tile("do_not_use"), tile("unverifiable")]).toEqual(["0", "2", "1", "3"]);
+    expect(screen.getByText("عدد الادعاءات: 6")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "إعادة التحقق" })).toBeInTheDocument();
   });
 
-  it("evidence card separates the verbatim source text from Mizan's explanation and links the original record", async () => {
+  it("result card: decision → claim → why → what to do → short evidence preview; details only on request", async () => {
     const user = userEvent.setup();
-    serve({ c1: contradicted() });
-    setup([claim("c1", contradicted().confirmed_claim_text)]);
-    await user.click(await screen.findByRole("button", { name: /عرض الأدلة والمصادر/ }));
-    const card = document.querySelector(`[data-evidence-id="${QURAN_EVIDENCE.evidence_id}"]`) as HTMLElement;
-    const sourceRegion = within(card).getByRole("region", { name: "النص من المصدر" });
-    expect(within(sourceRegion).getByText(QURAN_EVIDENCE.text)).toBeInTheDocument();
-    // Mizan's explanation is outside the source-text region and built from the record.
-    expect(within(sourceRegion).queryByText(/لا يطابق المصحف/)).toBeNull();
-    expect(within(card).getByText("شرح ميزان")).toBeInTheDocument();
-    expect(within(card).getByText("مؤشرات التحقق لهذا الدليل")).toBeInTheDocument();
-    expect(within(card).getByText("النص منقول كما هو من سجل المصدر الرسمي.")).toBeInTheDocument();
-    // The raw analysis rationale is never shown (it may be LLM-written, even in English).
-    expect(within(card).queryByText(/النص موجود في سورة البقرة/)).toBeNull();
-    expect(within(card).getByText("سورة آل عمران» لا يطابق المصحف؛ الموضع الموثّق للنص: سورة البقرة، الآية 158.", { exact: false })).toBeInTheDocument();
-    // The fixture's span is a normalised matching key, not verbatim source text → never shown as a quote.
-    expect(within(card).queryByText("المقطع الذي استند إليه ميزان")).toBeNull();
-    expect(within(card).queryByText(/ان الصفا والمروه/)).toBeNull();
-    expect(within(card).getByText(QURAN_EVIDENCE.reference)).toBeInTheDocument();
-    expect(within(card).getByText("Quranpedia")).toBeInTheDocument();
-    const link = within(card).getByRole("link", { name: QURAN_EVIDENCE.source_address });
-    expect(link).toHaveAttribute("href", QURAN_EVIDENCE.source_url);
-    // No numeric confidence score anywhere.
-    expect(document.body.textContent).not.toMatch(/%|confidence|درجة الثقة/);
-  });
-
-  it("shows the verified Quran reference from the record without rewriting the claim", async () => {
     serve({ c1: contradicted() });
     const text = contradicted().confirmed_claim_text;
     setup([claim("c1", text)]);
-    expect(await screen.findByText("الموضع الموثّق في المصحف")).toBeInTheDocument();
-    expect(screen.getByText("سورة البقرة، الآية 158")).toBeInTheDocument();
-    expect(screen.getByText(text)).toBeInTheDocument(); // user's wording kept as is
-    expect(screen.queryByText("حدود هذه النتيجة")).toBeNull(); // no limitations → no section
+    const card = (await screen.findByText("يخالف الدليل")).closest("li") as HTMLElement;
+    // Order inside the card.
+    const order = ["يخالف الدليل", text, "لماذا هذه النتيجة؟", "ماذا تفعل؟", "الأدلة التي اعتمد عليها ميزان", "عرض الأدلة والتفاصيل"];
+    const pos = order.map((x) => card.textContent!.indexOf(x));
+    expect(pos.every((p) => p >= 0)).toBe(true);
+    expect([...pos].sort((a, b) => a - b)).toEqual(pos);
+    // The claim appears once; the why states the documented location; one short action.
+    expect(within(card).getAllByText(text)).toHaveLength(1);
+    expect(within(card).getByText("ورد في ادعائك أن النص في «سورة آل عمران»، لكنه في المصحف في سورة البقرة، الآية 158.")).toBeInTheDocument();
+    expect(within(card).getByText("لا تنشره بصيغته الحالية؛ صحّح الجزء المخالف أو احذفه.")).toBeInTheDocument();
+    // Preview: source — place only; no text, provider, link or technical fields yet.
+    expect(within(card).getByText("— سورة البقرة، الآية 158")).toBeInTheDocument();
+    expect(card.querySelector("[data-evidence-id]")).toBeNull();
+    expect(within(card).queryByRole("link")).toBeNull();
+    // No duplicated / technical sections in the main card.
+    for (const gone of ["ما الذي تحقّق منه ميزان في الادعاء", "الموضع الموثّق في المصحف", "مؤشرات التحقق", "شرح ميزان", "حدود هذه النتيجة", "Quranpedia", "المزوّد"])
+      expect(card.textContent).not.toContain(gone);
+    expect(card.textContent).not.toMatch(/sha256|text_sha256|source_record_id|%|confidence|درجة الثقة/);
+
+    // Level 3: the traceable details.
+    await user.click(within(card).getByRole("button", { name: "عرض الأدلة والتفاصيل" }));
+    const ev = card.querySelector(`[data-evidence-id="${QURAN_EVIDENCE.evidence_id}"]`) as HTMLElement;
+    expect(within(ev).getByText("القرآن الكريم")).toBeInTheDocument();
+    // The fixture's span is a normalised matching key → the record's own text is shown instead.
+    const region = within(ev).getByRole("region", { name: "النص من المصدر" });
+    expect(within(region).getByText(QURAN_EVIDENCE.text)).toBeInTheDocument();
+    expect(ev.textContent).not.toMatch(/ان الصفا والمروه/);
+    expect(within(ev).getByText(QURAN_EVIDENCE.reference)).toBeInTheDocument();
+    expect(within(ev).getByRole("link", { name: "فتح السجل الأصلي" })).toHaveAttribute("href", QURAN_EVIDENCE.source_url);
+    expect(within(card).getByRole("button", { name: "إخفاء الأدلة والتفاصيل" })).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("conflicting evidence: limitations shown and evidence grouped into supporting / opposing", async () => {
+  it("conflicting evidence: details group supporting / opposing; limitations only inside details", async () => {
     const user = userEvent.setup();
     serve({ c3: conflicting });
     setup([claim("c3", conflicting.confirmed_claim_text)]);
-    expect(await screen.findByText("حدود هذه النتيجة")).toBeInTheDocument();
-    expect(screen.getByText(conflicting.limitations[0])).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /عرض الأدلة والمصادر/ }));
-    const pro = screen.getByRole("region", { name: "أدلة تؤيد" });
-    const con = screen.getByRole("region", { name: "أدلة تخالف" });
-    expect(within(pro).getByText(TAFSIR_EVIDENCE.text)).toBeInTheDocument();
-    expect(within(con).getByText(IBN_KATHIR_EVIDENCE.text)).toBeInTheDocument();
-    expect(within(con).getByText("«لا يغلبه نعاس ولا نوم»")).toBeInTheDocument(); // verbatim span shown
-    expect(within(pro).queryByText(IBN_KATHIR_EVIDENCE.text)).toBeNull();
+    const card = (await screen.findByText("أدلة متعارضة")).closest("li") as HTMLElement;
+    expect(within(card).getByText(/المصادر مختلفة بشأن «كذا»/)).toBeInTheDocument();
+    expect(within(card).queryByText("حدود هذا التحقق")).toBeNull();
+    await user.click(within(card).getByRole("button", { name: "عرض الأدلة والتفاصيل" }));
+    const pro = within(card).getByRole("region", { name: "أدلة تؤيد" });
+    const con = within(card).getByRole("region", { name: "أدلة تخالف" });
+    expect(within(pro).getByText("لا تأخذه سِنَة أي: نعاس.")).toBeInTheDocument(); // verbatim cited passage
+    expect(within(con).getByText("لا يغلبه نعاس ولا نوم")).toBeInTheDocument();
+    expect(within(pro).queryByText("لا يغلبه نعاس ولا نوم")).toBeNull();
+    expect(within(card).getByText("حدود هذا التحقق")).toBeInTheDocument();
+    expect(within(card).getByText(conflicting.limitations[0])).toBeInTheDocument();
+    expect(card.textContent).not.toMatch(/المؤلف|غير مذكور لدى المزوّد|تحليل آلي|مطابقة آلية|قوة الدليل/);
   });
 
-  it("tafsir evidence shows provider author and marks LLM analysis as not part of the source", async () => {
-    const user = userEvent.setup();
-    serve({ c3: conflicting });
-    setup([claim("c3", conflicting.confirmed_claim_text)]);
-    await user.click(await screen.findByRole("button", { name: /عرض الأدلة والمصادر/ }));
-    const card = document.querySelector(`[data-evidence-id="${TAFSIR_EVIDENCE.evidence_id}"]`) as HTMLElement;
-    expect(within(card).getByText("تفسير")).toBeInTheDocument();
-    expect(within(card).getByText(TAFSIR_EVIDENCE.metadata.provider_author as string)).toBeInTheDocument();
-    // Technical wording and raw analysis text are never shown to the user.
-    expect(document.body.textContent).not.toMatch(/تحليل آلي|مطابقة آلية|قوة الدليل/);
+  it("no evidence used → no empty evidence section and no details button", async () => {
+    serve({ c4: noEvidence });
+    setup([claim("c4", noEvidence.confirmed_claim_text)]);
+    const card = (await screen.findByText("لم يُعثر على دليل")).closest("li") as HTMLElement;
+    expect(within(card).getByText(/عدم العثور على دليل لا يعني أن الادعاء خاطئ/)).toBeInTheDocument();
+    expect(within(card).queryByText("الأدلة التي اعتمد عليها ميزان")).toBeNull();
+    expect(within(card).queryByRole("button", { name: "عرض الأدلة والتفاصيل" })).toBeNull();
   });
 
   it("alternative wording: a VERIFIED proposal can be adopted and replaces the claim and its result", async () => {
@@ -207,17 +207,16 @@ describe("Full Content results", () => {
     await user.click(await screen.findByRole("button", { name: "اقترح صياغة بديلة" }));
     expect(await screen.findByText("✓ تم التحقق من الصياغة المقترحة")).toBeInTheDocument();
     expect(screen.getByText("نتيجة التحقق من الصياغة المقترحة")).toBeInTheDocument();
-    const sectionCount = (s: string) => document.querySelector(`li[data-section="${s}"]`)?.textContent ?? null;
-    expect(sectionCount("do_not_use_as_written")).toMatch(/1/);
-    expect(sectionCount("verified")).toBeNull();
+    const tile = (d: string) => document.querySelector(`li[data-decision="${d}"] p`)?.textContent;
+    expect([tile("usable"), tile("do_not_use")]).toEqual(["0", "1"]);
     await user.click(screen.getByRole("button", { name: "اعتماد الصياغة المقترحة" }));
     expect(await screen.findByText("مدعوم بالأدلة")).toBeInTheDocument();
     expect(screen.queryByText("يخالف الدليل")).toBeNull();
     // Report updated dynamically: claim moved group and summary counters changed (spec §15).
-    expect(sectionCount("verified")).toMatch(/1/);
-    expect(sectionCount("do_not_use_as_written")).toBeNull();
+    expect([tile("usable"), tile("do_not_use")]).toEqual(["1", "0"]);
     expect(screen.getByText("اعتمدت الصياغة المقترحة بعد التحقق منها.")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /محتوى تم التحقق منه/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /يمكن استخدامها \(1\)/ })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /لا تُستخدم بصيغتها الحالية/ })).toBeNull();
     expect(screen.getAllByText(fixed).length).toBeGreaterThan(0);
   });
 

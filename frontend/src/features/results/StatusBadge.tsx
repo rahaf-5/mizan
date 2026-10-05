@@ -22,7 +22,7 @@ export function StatusBadge({ kind }: { kind: BadgeKind }) {
   return (
     <span
       data-status={kind}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-bold ${tone[kind].cls}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-base font-bold ${tone[kind].cls}`}
     >
       {tone[kind].icon}
       {t.results.status[kind]}

@@ -5,12 +5,11 @@ import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { getDictionary } from "@/i18n";
 import { formatNumber } from "@/lib/format";
-import { evidenceSummary, explainResult, verificationIndicators } from "@/lib/verify/presentation";
+import { evidencePreview, explainResult } from "@/lib/verify/presentation";
 import { canOfferAlternative } from "@/lib/verify/report";
 import type { AlternativeWording, ClaimRun, Evidence, VerificationOutcome } from "@/lib/verify/types";
 import { AlternativeWordingPanel } from "./AlternativeWordingPanel";
 import { EvidenceCard } from "./EvidenceCard";
-import { IndicatorList } from "./IndicatorList";
 import { StatusBadge } from "./StatusBadge";
 
 const t = getDictionary().results;
@@ -28,19 +27,18 @@ function technicalReason(code: string): string {
   return "";
 }
 
-function Block({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-1">
-      <h4 className="font-bold">{title}</h4>
-      <div className="leading-7">{children}</div>
+    <section className="space-y-1.5">
+      <h3 className="text-sm font-semibold text-[var(--color-muted)]">{title}</h3>
+      <div className="space-y-1.5 leading-8">{children}</div>
     </section>
   );
 }
 
 type ConflictGroup = keyof typeof t.conflictGroups;
 
-/** For conflicting evidence only: group cards by how each item relates to the claim (spec §13).
- * Presentation only — the status and every relationship come from the backend unchanged. */
+/** Conflicting evidence only: supporting / opposing / other, shown separately (spec §13). */
 function conflictGroups(outcome: VerificationOutcome): { group: ConflictGroup; items: Evidence[] }[] {
   const groupOf = (ev: Evidence): ConflictGroup => {
     const rels = outcome.analysis.assessments.filter((a) => a.evidence_id === ev.evidence_id).map((a) => a.relationship);
@@ -53,229 +51,143 @@ function conflictGroups(outcome: VerificationOutcome): { group: ConflictGroup; i
     .filter((g) => g.items.length > 0);
 }
 
-function VerificationDetails({ outcome }: { outcome: VerificationOutcome }) {
+/** Level 2: short evidence preview + one button; level 3 (on demand): evidence details. */
+function EvidenceSection({ outcome }: { outcome: VerificationOutcome }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
-  const { components, assessments, related_unverified_addresses: related } = outcome.analysis;
-  const summary = evidenceSummary(outcome);
-  const indicators = verificationIndicators(outcome);
-  const card = (ev: Evidence) => (
-    <EvidenceCard
-      key={ev.evidence_id}
-      evidence={ev}
-      assessments={assessments.filter((a) => a.evidence_id === ev.evidence_id)}
-      components={components}
-    />
-  );
+  const preview = evidencePreview(outcome);
+  if (!preview.length) return null;
+  const card = (ev: Evidence) => <EvidenceCard key={ev.evidence_id} evidence={ev} assessments={outcome.analysis.assessments} />;
   return (
-    <div className="space-y-4">
-      {components.length ? (
-        <section className="space-y-2">
-          <h4 className="font-bold">{t.componentsTitle}</h4>
-          <ul className="space-y-2">
-            {components.map((c) => (
-              <li key={c.component_id} className="rounded-xl border border-[var(--color-border)] p-3 text-sm" data-outcome={c.outcome ?? ""}>
-                <p dir="auto">«{c.text}»</p>
-                <p className="pt-1 font-bold">
-                  {c.outcome ? t.componentOutcome[c.outcome] : "—"}
-                  {c.role === "anchor" ? <span className="font-normal text-[var(--color-muted)]"> — {t.anchorNote}</span> : null}
-                </p>
-                {c.detail ? <p className="pt-1">{c.detail}</p> : null}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {outcome.status === "conflicting_evidence" ? (
-        <Block title={t.conflictTitle}>
-          <p>{t.conflictBody}</p>
-        </Block>
-      ) : null}
-
-      {outcome.verified_reference ? (
-        <Block title={t.verifiedReferenceTitle}>
-          <p>{outcome.verified_reference}</p>
-          <p className="text-sm text-[var(--color-muted)]">{t.verifiedReferenceNote}</p>
-        </Block>
-      ) : null}
-
-      {outcome.limitations.length ? (
-        <Block title={t.limitationsTitle}>
-          <ul className="list-disc space-y-1 ps-6 text-sm">
-            {outcome.limitations.map((l) => (
-              <li key={l}>{l}</li>
-            ))}
-          </ul>
-        </Block>
-      ) : null}
-
-      {summary.length ? (
-        <Block title={t.evidenceSummaryTitle}>
-          <ul className="list-disc space-y-1 ps-6">
-            {summary.map((s) => (
-              <li key={s.evidenceId}>
-                <span className="font-bold">{s.source}:</span> {s.text}
-              </li>
-            ))}
-          </ul>
-        </Block>
-      ) : null}
-
-      {indicators.length ? (
-        <Block title={t.indicatorsTitle}>
-          <IndicatorList items={indicators} />
-        </Block>
-      ) : null}
-
-      {related.length ? <p className="text-sm text-[var(--color-muted)]">{t.relatedUnverified(formatNumber(related.length))}</p> : null}
-
-      {outcome.evidence.length ? (
-        <div className="space-y-3">
-          <Button variant="secondary" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen((v) => !v)}>
-            {open ? t.hideEvidence : t.showEvidence(formatNumber(outcome.evidence.length))}
-          </Button>
-          {open ? (
-            <div id={panelId} className="space-y-3">
-              {outcome.status === "conflicting_evidence"
-                ? conflictGroups(outcome).map(({ group, items }) => (
-                    <section key={group} className="space-y-3" aria-label={t.conflictGroups[group]}>
-                      <h5 className="font-bold">
-                        {t.conflictGroups[group]} ({formatNumber(items.length)})
-                      </h5>
-                      {items.map(card)}
-                    </section>
-                  ))
-                : outcome.evidence.map(card)}
-            </div>
+    <section className="space-y-3 border-t border-[var(--color-border)] pt-4">
+      <h3 className="text-sm font-semibold text-[var(--color-muted)]">{t.evidenceSummaryTitle}</h3>
+      <ul className="space-y-1 text-sm">
+        {preview.map((p) => (
+          <li key={p.key}>
+            {p.source} <span className="text-[var(--color-muted)]">— {p.place}</span>
+          </li>
+        ))}
+      </ul>
+      <Button variant="secondary" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen((v) => !v)}>
+        {open ? t.hideDetails : t.showDetails}
+      </Button>
+      {open ? (
+        <div id={panelId} className="space-y-3">
+          {outcome.status === "conflicting_evidence"
+            ? conflictGroups(outcome).map(({ group, items }) => (
+                <section key={group} className="space-y-2" aria-label={t.conflictGroups[group]}>
+                  <h4 className="text-sm font-semibold">
+                    {t.conflictGroups[group]} ({formatNumber(items.length)})
+                  </h4>
+                  {items.map(card)}
+                </section>
+              ))
+            : outcome.evidence.map(card)}
+          {outcome.limitations.length ? (
+            <section className="space-y-1 text-sm">
+              <h4 className="font-semibold">{t.limitationsTitle}</h4>
+              <ul className="list-disc space-y-1 ps-6 text-[var(--color-muted)]">
+                {outcome.limitations.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
+            </section>
           ) : null}
         </div>
-      ) : (
-        <p className="text-sm text-[var(--color-muted)]">{t.noEvidenceShown}</p>
-      )}
-    </div>
+      ) : null}
+    </section>
   );
 }
 
-/** Claim card (spec §12): claim → status → why → what to do → evidence & sources. */
+/**
+ * The single result card used by Quick Check and by every claim in Full Content:
+ * decision (status) → claim → why → what to do (+ verified alternative) → evidence on demand.
+ */
 export function ClaimResultCard({
   run,
   index,
+  showIndex = true,
   onRetry,
   onAdopt,
 }: {
   run: ClaimRun;
   index: number;
+  showIndex?: boolean;
   onRetry: () => void;
   onAdopt: (alt: AlternativeWording) => void;
 }) {
-  const header = (badge: React.ReactNode) => (
-    <header className="space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-bold text-[var(--color-muted)]">
-          {t.claimLabel} {formatNumber(index + 1)}
-        </p>
-        {badge}
-      </div>
-      <p dir="auto" className="text-lg leading-8">
-        {run.claim.confirmed_claim_text}
-      </p>
-    </header>
+  let badge: React.ReactNode;
+  let why: React.ReactNode = null;
+  let what: React.ReactNode = null;
+  let after: React.ReactNode = null;
+  const retry = (
+    <Button variant="secondary" onClick={onRetry}>
+      {t.technical.retry}
+    </Button>
   );
 
-  let body: React.ReactNode = null;
-  let badge: React.ReactNode = null;
   if (run.state === "waiting" || run.state === "running") {
     badge = <span className="text-sm text-[var(--color-muted)]">{t.runState[run.state]}</span>;
   } else if (run.state === "failed") {
     badge = <StatusBadge kind="system_error" />;
-    body = (
+    why = <p>{`${t.technical.why} ${technicalReason(run.code)}`.trim()}</p>;
+    what = (
       <>
-        <Block title={t.whyTitle}>
-          <p>
-            {t.technical.why} {technicalReason(run.code)}
-          </p>
-        </Block>
-        <Block title={t.whatTitle}>
-          <p>{t.technical.what}</p>
-        </Block>
-        <Button variant="secondary" onClick={onRetry}>
-          {t.technical.retry}
-        </Button>
+        <p>{t.technical.what}</p>
+        {retry}
       </>
     );
   } else {
     const o = run.outcome;
     if (o.kind === "verification") {
       badge = <StatusBadge kind={o.status} />;
-      body = (
+      why = explainResult(o).map((line) => <p key={line}>{line}</p>);
+      what = (
         <>
-          {run.adopted ? <Notice tone="success" role="status" title={t.alternative.adopted} /> : null}
-          <Block title={t.whyTitle}>
-            {explainResult(o).map((line) => (
-              <p key={line}>{line}</p>
-            ))}
-          </Block>
-          <Block title={t.whatTitle}>
-            <p>{o.what_to_do}</p>
-          </Block>
-          <VerificationDetails outcome={o} />
-          {canOfferAlternative(o) ? (
-            <AlternativeWordingPanel runId={run.runId} claimId={o.claim_id} onAdopt={onAdopt} />
-          ) : null}
+          <p>{t.whatToDo[o.status]}</p>
+          {canOfferAlternative(o) ? <AlternativeWordingPanel runId={run.runId} claimId={o.claim_id} onAdopt={onAdopt} /> : null}
         </>
       );
+      after = <EvidenceSection outcome={o} />;
     } else if (o.kind === "required_source_unavailable") {
       badge = <StatusBadge kind="required_source_unavailable" />;
-      const names = o.unavailable_sources.map((s) => SOURCE_NAMES[s] ?? s).join("، ");
-      body = (
-        <>
-          <Block title={t.whyTitle}>
-            <p>{t.unavailable.why(names)}</p>
-          </Block>
-          <Block title={t.whatTitle}>
-            <p>{t.unavailable.what}</p>
-          </Block>
-        </>
-      );
+      why = <p>{t.unavailable.why(o.unavailable_sources.map((s) => SOURCE_NAMES[s] ?? s).join("، "))}</p>;
+      what = <p>{t.unavailable.what}</p>;
     } else if (o.kind === "out_of_scope") {
       badge = <StatusBadge kind="out_of_scope" />;
-      body = (
-        <>
-          <Block title={t.whyTitle}>
-            <p>{t.outOfScope.why}</p>
-          </Block>
-          <Block title={t.whatTitle}>
-            <p>{t.outOfScope.what}</p>
-          </Block>
-        </>
-      );
+      why = <p>{t.outOfScope.why}</p>;
+      what = <p>{t.outOfScope.what}</p>;
     } else {
       badge = <StatusBadge kind="system_error" />;
-      body = (
+      why = <p>{`${t.technical.why} ${technicalReason(o.error.code)}`.trim()}</p>;
+      what = (
         <>
-          <Block title={t.whyTitle}>
-            <p>
-              {t.technical.why} {technicalReason(o.error.code)}
-            </p>
-          </Block>
-          <Block title={t.whatTitle}>
-            <p>{t.technical.what}</p>
-          </Block>
-          {o.error.retryable ? (
-            <Button variant="secondary" onClick={onRetry}>
-              {t.technical.retry}
-            </Button>
-          ) : null}
+          <p>{t.technical.what}</p>
+          {o.error.retryable ? retry : null}
         </>
       );
     }
   }
 
   return (
-    <li className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-sm" data-run-state={run.state}>
-      {header(badge)}
-      {body}
+    <li className="space-y-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-sm sm:p-6" data-run-state={run.state}>
+      <header className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {badge}
+          {showIndex ? (
+            <span className="text-sm text-[var(--color-muted)]">
+              {t.claimLabel} {formatNumber(index + 1)}
+            </span>
+          ) : null}
+        </div>
+        <p dir="auto" className="border-s-4 border-[var(--color-border-strong)] ps-3 text-lg leading-8">
+          {run.claim.confirmed_claim_text}
+        </p>
+      </header>
+      {run.state === "done" && run.adopted ? <Notice tone="success" role="status" title={t.alternative.adopted} /> : null}
+      {why ? <Section title={t.whyTitle}>{why}</Section> : null}
+      {what ? <Section title={t.whatTitle}>{what}</Section> : null}
+      {after}
     </li>
   );
 }

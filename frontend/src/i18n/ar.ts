@@ -138,14 +138,6 @@ export const ar = {
     runState: { waiting: "في الانتظار", running: "جارٍ التحقق", done: "اكتمل", failed: "تعذّر" },
     summaryTitle: "ملخص التقرير",
     summaryTotal: (n: string) => `عدد الادعاءات: ${n}`,
-    sections: {
-      verified: "محتوى تم التحقق منه", // spec
-      do_not_use_as_written: "لا تستخدم هذه الادعاءات بصيغتها الحالية", // spec
-      needs_revision: "تحتاج مراجعة قبل النشر", // spec
-      needs_evidence_review: "تحتاج مراجعة الأدلة", // spec
-      not_verifiable_now: "لا يمكن التحقق منها حاليًا",
-      technical: "تعذّر التحقق بسبب مشكلة تقنية",
-    },
     status: {
       supported: "مدعوم بالأدلة",
       partially_supported: "مدعوم جزئيًا",
@@ -160,52 +152,37 @@ export const ar = {
     claimLabel: "الادعاء",
     whyTitle: "لماذا هذه النتيجة؟", // product decision 2026-10-05 (was «لماذا وضعه ميزان هنا؟»)
     whatTitle: "ماذا تفعل؟", // spec
-    componentsTitle: "ما الذي تحقّق منه ميزان في الادعاء",
-    componentOutcome: {
-      supported: "مثبت",
-      partially_supported: "مثبت جزئيًا",
-      contradicted: "مخالف للدليل",
-      conflicting: "الأدلة فيه متعارضة",
-      insufficient: "الأدلة غير كافية",
-      not_established: "لم يُثبت",
+    whatToDo: {
+      supported: "يمكنك استخدامه بصيغته الحالية مع ذكر المصدر والمرجع.",
+      partially_supported: "عدّل الجزء غير المثبت أو احذفه قبل النشر.",
+      contradicted: "لا تنشره بصيغته الحالية؛ صحّح الجزء المخالف أو احذفه.",
+      insufficient_evidence: "لا تنشره كحقيقة مؤكدة، وراجع المصدر أو اسأل أهل العلم.",
+      no_evidence_found: "لا تنشره كحقيقة مؤكدة حتى تجد له مصدرًا موثوقًا.",
+      conflicting_evidence: "لا تنشره كحقيقة محسومة؛ راجع الأقوال المختلفة أو اسأل أهل العلم.",
     },
-    anchorNote: "سياق: الآية المشار إليها في الادعاء",
-    verifiedLocation: "الموضع الموثّق:",
-    verifiedReferenceTitle: "الموضع الموثّق في المصحف",
     evidenceSummaryTitle: "الأدلة التي اعتمد عليها ميزان",
-    indicatorsTitle: "مؤشرات التحقق",
-    verifiedReferenceNote: "من سجل المصدر المعتمد؛ لم يُغيَّر نص ادعائك.",
-    limitationsTitle: "حدود هذه النتيجة",
+    showDetails: "عرض الأدلة والتفاصيل",
+    hideDetails: "إخفاء الأدلة والتفاصيل",
+    limitationsTitle: "حدود هذا التحقق",
     conflictGroups: {
       supports: "أدلة تؤيد",
       contradicts: "أدلة تخالف",
       other: "أدلة أخرى ذات صلة",
     },
-    showEvidence: (n: string) => `عرض الأدلة والمصادر (${n})`,
-    hideEvidence: "إخفاء الأدلة والمصادر",
-    noEvidenceShown: "لا توجد أدلة مستخدمة في هذه النتيجة.",
-    relatedUnverified: (n: string) =>
-      `وجد البحث ${n} نتيجة مرتبطة بالكلمات فقط؛ لم تُستخدم في الحكم لأنها لا تكفي للتحقق.`,
-    conflictTitle: "لماذا لم يُصدر ميزان حكمًا قاطعًا؟",
-    conflictBody:
-      "المصادر المعتمدة نفسها مختلفة بشأن هذا الجزء، فعُرضت الأدلة المؤيدة والمخالفة كما هي دون ترجيح.",
+    newCheck: "فحص جديد",
+    decisions: {
+      usable: "يمكن استخدامها",
+      needs_review: "تحتاج تعديلًا أو مراجعة",
+      do_not_use: "لا تُستخدم بصيغتها الحالية",
+      unverifiable: "تعذّر التحقق منها حاليًا",
+    },
     evidence: {
       sourceText: "النص من المصدر", // spec
       citedSpan: "المقطع الذي استند إليه ميزان",
-      indicatorsTitle: "مؤشرات التحقق لهذا الدليل",
-      mizanExplanation: "شرح ميزان", // spec
-      supportedPart: "الجزء المثبت:",
-      unsupportedPart: "الجزء غير المثبت:",
       source: "المصدر",
-      provider: "المزوّد",
       reference: "المرجع",
-      author: "المؤلف (كما ورد من المزوّد)",
-      authorMissing: "غير مذكور لدى المزوّد",
-      relationType: "نوع الصلة بسبب النزول",
-      relationUnspecified: "غير محدد لدى المزوّد",
-      record: "السجل الأصلي لدى المزوّد",
+      original: "المصدر الأصلي",
       openRecord: "فتح السجل الأصلي",
-      sourceType: { quran: "قرآن", tafsir: "تفسير", asbab_nuzul: "أسباب النزول", hadith: "حديث" },
     },
     unavailable: {
       why: (sources: string) =>

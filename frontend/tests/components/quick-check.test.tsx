@@ -116,6 +116,22 @@ describe("Quick Check", () => {
     expect(screen.getByText("لماذا هذه النتيجة؟")).toBeInTheDocument();
   });
 
+  it("shows ONE result card (no report dashboard) and «فحص جديد» starts over with an empty field", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.type(screen.getByRole("textbox", { name: "الادعاء" }), SINGLE);
+    await user.click(screen.getByRole("button", { name: "تحقق من الادعاء" }));
+    await screen.findByText("مدعوم بالأدلة");
+    expect(screen.queryByText("ملخص التقرير")).toBeNull();
+    expect(screen.queryByText(/^الادعاء 1$/)).toBeNull();
+    expect(screen.getAllByRole("listitem").filter((li) => li.hasAttribute("data-run-state"))).toHaveLength(1);
+    expect(screen.getByText("لماذا هذه النتيجة؟")).toBeInTheDocument();
+    expect(screen.getByText("ماذا تفعل؟")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "فحص جديد" }));
+    expect(screen.getByRole("textbox", { name: "الادعاء" })).toHaveValue("");
+    expect(probe().prepared).toBeNull();
+  });
+
   it("shows a technical failure (not a verdict) and retries verification", async () => {
     const user = userEvent.setup();
     let calls = 0;
