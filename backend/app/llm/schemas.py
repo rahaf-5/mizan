@@ -21,6 +21,7 @@ class LLMTask(str, Enum):
     CLASSIFICATION_ASSISTANCE = "classification_assistance"
     CONSTRAINED_EVIDENCE_ANALYSIS = "constrained_evidence_analysis"
     EXPLANATION_GENERATION = "explanation_generation"
+    ALTERNATIVE_WORDING = "alternative_wording"
 
 
 class LLMOutput(BaseModel):
@@ -163,10 +164,26 @@ class ExplanationDraft(LLMOutput):
     grounded_in_evidence_ids: list[str] = Field(default_factory=list)
 
 
+# --- Alternative wording ------------------------------------------------------
+
+
+class AlternativeWordingDraft(LLMOutput):
+    """A PROPOSED rewording. Never trusted: it is re-verified through the full pipeline."""
+
+    proposed_claim_text: str = Field(
+        description=(
+            "One Arabic claim that states ONLY what the given excerpts establish, close to the "
+            "user's wording. Empty string if no reliable rewording is possible."
+        )
+    )
+    rationale: str = Field(min_length=1, description="One short sentence.")
+
+
 #: Output schema registered for each task.
 TASK_OUTPUT_SCHEMAS: dict[LLMTask, type[LLMOutput]] = {
     LLMTask.CLAIM_EXTRACTION: ClaimExtractionDraft,
     LLMTask.CLASSIFICATION_ASSISTANCE: ClassificationSuggestion,
     LLMTask.CONSTRAINED_EVIDENCE_ANALYSIS: EvidenceAnalysisDraft,
     LLMTask.EXPLANATION_GENERATION: ExplanationDraft,
+    LLMTask.ALTERNATIVE_WORDING: AlternativeWordingDraft,
 }

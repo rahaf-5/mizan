@@ -37,7 +37,9 @@ def test_verify_returns_validated_outcomes():
     loc = next(c for c in o["analysis"]["components"] if c["kind"] == "quran_location")
     assert loc["outcome"] == "contradicted" and loc["verified_location"][0]["ayah_number"] == 158
     assert all(e["source_address"] and e["text_sha256"] for e in o["evidence"])
-    assert o["result_group"] is None and o["why"] is None  # presentation is Task 7
+    assert o["result_group"] == "do_not_use_as_written"
+    assert "سورة آل عمران" in o["why"] and "سورة البقرة، الآية 158" in o["why"]  # claim-specific
+    assert o["what_to_do"]
 
 
 def test_hadith_claim_returns_required_source_unavailable():

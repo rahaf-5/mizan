@@ -21,11 +21,13 @@ from app.config import Settings, get_settings
 from app.core_logging import get_logger
 from app.domain.claim import ConfirmedClaim
 from app.domain.enums import PipelineStage, SystemErrorCode
-from app.domain.errors import SystemErrorInfo
-from app.domain.inputs import MAX_REVIEW_CLAIMS
-from app.domain.results import FinalUserResult, SystemErrorOutcome
+from app.domain.errors import MizanError, SystemErrorInfo
+from app.domain.inputs import MAX_CLAIM_CHARS, MAX_REVIEW_CLAIMS
+from app.domain.results import FinalUserResult, SystemErrorOutcome, VerificationOutcome
 from app.llm.base import LLMProvider
+from app.pipeline.alternative_wording import AlternativeWordingService, is_eligible
 from app.pipeline.factory import build_verification_pipeline
+from app.pipeline.result_store import RESULTS
 from app.sources.dorar import DorarAdapter
 from app.sources.quranpedia import QuranpediaAdapter
 from app.sources.registry import AdapterRegistry
@@ -46,6 +48,33 @@ class VerifyRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     claims: list[ConfirmedClaim] = Field(min_length=1, max_length=MAX_REVIEW_CLAIMS)
+
+
+class AlternativeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    run_id: str = Field(min_length=1, max_length=100)
+    claim_id: str = Field(min_length=1, max_length=100)
+
+
+def _input_error(status: int, code: str, message: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=status, content={"kind": "input_error", "code": code, "message": message}
+    )
+
+
+def _not_configured() -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content=FailureResponse(
+            error=SystemErrorInfo(
+                code=SystemErrorCode.LLM_NOT_CONFIGURED,
+                stage=PipelineStage.CLAIM_CLASSIFICATION,
+                message="Verification analysis service is not configured",
+                retryable=False,
+            )
+        ).model_dump(mode="json"),
+    )
 
 
 @lru_cache(maxsize=4)
@@ -104,26 +133,73 @@ async def verify_claims(
 ):
     ids = [c.claim_id for c in body.claims]
     if len(ids) != len(set(ids)):
-        return JSONResponse(
-            status_code=422,
-            content={
-                "kind": "input_error",
-                "code": "duplicate_claim_id",
-                "message": "claim ids must be unique",
-            },
-        )
+        return _input_error(422, "duplicate_claim_id", "claim ids must be unique")
+    if any(len(c.confirmed_claim_text) > MAX_CLAIM_CHARS for c in body.claims):
+        return _input_error(413, "claim_too_long", f"maximum is {MAX_CLAIM_CHARS} chars")
     if provider is None or not provider.is_configured():
+        return _not_configured()
+    pipeline = build_verification_pipeline(settings, provider, registry)
+    result = await pipeline.run_confirmed(body.claims)
+    by_id = {c.claim_id: c for c in body.claims}
+    for o in result.outcomes:
+        if isinstance(o, VerificationOutcome):
+            RESULTS.put(result.run_id, by_id[o.claim_id], o)
+    return _public(result).model_dump(mode="json")
+
+
+@router.post("/alternative-wording")
+async def alternative_wording(
+    body: AlternativeRequest,
+    settings: Annotated[Settings, Depends(get_settings)],
+    provider: Annotated[LLMProvider | None, Depends(get_llm_provider)],
+    registry: Annotated[AdapterRegistry, Depends(get_registry)],
+):
+    """Spec §15: propose ONE wording from the server's own validated result, then re-verify it
+    through the full pipeline. `verified` is true only if the re-verification is `supported`."""
+    stored = RESULTS.get(body.run_id, body.claim_id)
+    if stored is None:
+        return _input_error(404, "result_not_found", "verify the claim again first")
+    claim, outcome = stored
+    if not is_eligible(outcome):
+        return _input_error(422, "not_eligible", "alternative wording is not appropriate here")
+    if provider is None or not provider.is_configured():
+        return _not_configured()
+    pipeline = build_verification_pipeline(settings, provider, registry)
+    try:
+        alt = await AlternativeWordingService(provider, pipeline).propose(claim, outcome)
+    except MizanError as exc:
+        log.warning("alternative wording failed: %s", exc.to_info().message)
         return JSONResponse(
-            status_code=503,
+            status_code=502,
             content=FailureResponse(
                 error=SystemErrorInfo(
-                    code=SystemErrorCode.LLM_NOT_CONFIGURED,
-                    stage=PipelineStage.CLAIM_CLASSIFICATION,
-                    message="Verification analysis service is not configured",
-                    retryable=False,
+                    code=exc.code,
+                    stage=PipelineStage.FINAL_USER_RESULT,
+                    message="Alternative wording could not be generated",
+                    retryable=exc.retryable,
                 )
             ).model_dump(mode="json"),
         )
-    pipeline = build_verification_pipeline(settings, provider, registry)
-    result = await pipeline.run_confirmed(body.claims)
-    return _public(result).model_dump(mode="json")
+    alt_run = f"{body.run_id}:alt"
+    if alt.outcome is not None and isinstance(alt.outcome, VerificationOutcome):
+        RESULTS.put(
+            alt_run,
+            ConfirmedClaim(
+                claim_id=alt.outcome.claim_id,
+                confirmed_claim_text=alt.outcome.confirmed_claim_text,
+                user_confirmation_status="confirmed",
+            ),
+            alt.outcome,
+        )
+    outcome_json = None
+    if alt.outcome is not None:
+        wrapped = _public(FinalUserResult(run_id=alt_run, outcomes=[alt.outcome]))
+        outcome_json = wrapped.outcomes[0].model_dump(mode="json")
+    return {
+        "kind": "alternative_wording",
+        "original_claim_id": body.claim_id,
+        "run_id": alt_run,
+        "proposed_text": alt.proposed_text,
+        "verified": alt.verified,
+        "outcome": outcome_json,
+    }
