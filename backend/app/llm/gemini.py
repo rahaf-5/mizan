@@ -21,7 +21,11 @@ Logged: HTTP status, provider status/reason, sizes. Never logged: API key, conte
 
 from __future__ import annotations
 
+import asyncio
 import json
+import re
+import time
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 import httpx
@@ -121,6 +125,46 @@ def redacted_structure(body: Any) -> Any:
     return body
 
 
+# --- transient-failure retry (provider level: every LLM task benefits) ------------------------
+#: Total attempts per LLM call for transient provider failures (1 = no retry).
+MAX_ATTEMPTS = 3
+#: Short backoff when the provider does not say how long to wait.
+BACKOFF_SECONDS = (1.5, 3.0)
+#: Longest provider-requested wait we honour; longer means "quota", which retries cannot fix.
+MAX_RETRY_DELAY_SECONDS = 30.0
+#: Wall-clock budget for one LLM call including retries (frontend waits 90-180 s per request).
+RETRY_BUDGET_SECONDS = 80.0
+_TRANSIENT_HTTP = {429, 500, 502, 503, 504}
+_DURATION = re.compile(r"^\s*(\d+(?:\.\d+)?)s\s*$")
+
+
+def _is_daily_quota(payload: Any) -> bool:
+    """429 from a per-day quota (e.g. ...PerDay...FreeTier): exhausted until reset; never retry."""
+    err = payload.get("error") if isinstance(payload, dict) else None
+    for d in (err.get("details") or []) if isinstance(err, dict) else []:
+        for v in (d.get("violations") or []) if isinstance(d, dict) else []:
+            if isinstance(v, dict) and "perday" in str(v.get("quotaId", "")).lower():
+                return True
+    return False
+
+
+def _requested_delay(headers: httpx.Headers, payload: Any) -> float | None:
+    """Retry-After header (seconds) or google.rpc.RetryInfo.retryDelay ("12s"), if given."""
+    ra = headers.get("retry-after")
+    if ra:
+        try:
+            return max(0.0, float(ra))
+        except ValueError:
+            pass
+    err = payload.get("error") if isinstance(payload, dict) else None
+    for d in (err.get("details") or []) if isinstance(err, dict) else []:
+        if isinstance(d, dict) and isinstance(d.get("retryDelay"), str):
+            m = _DURATION.match(d["retryDelay"])
+            if m:
+                return float(m.group(1))
+    return None
+
+
 class GeminiProvider(LLMProvider):
     name = "gemini"
 
@@ -133,6 +177,8 @@ class GeminiProvider(LLMProvider):
         thinking_level: str = "",
         transport: httpx.AsyncBaseTransport | None = None,
         config_problem: str | None = None,
+        max_attempts: int = MAX_ATTEMPTS,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
         self._api_key = api_key or None
         self.model = model
@@ -140,6 +186,8 @@ class GeminiProvider(LLMProvider):
         self._thinking = thinking_level
         self._transport = transport
         self._config_problem = config_problem
+        self._max_attempts = max(1, max_attempts)
+        self._sleep = sleep
 
     @property
     def config_problem(self) -> str | None:
@@ -180,34 +228,71 @@ class GeminiProvider(LLMProvider):
             raise LLMNotConfiguredError(problem)
 
         url = f"{BASE_URL}/models/{self.model}:generateContent"
-        try:
-            async with httpx.AsyncClient(
-                timeout=self._timeout, transport=self._transport
-            ) as client:
-                resp = await client.post(
-                    url,
-                    json=self._body(request, output_type),
-                    headers={"x-goog-api-key": self._api_key or ""},
-                )
-        except httpx.TimeoutException as exc:
-            log.warning("Gemini timed out after %ss (task=%s)", self._timeout, request.task.value)
-            raise LLMTimeoutError("LLM provider timed out") from exc
-        except httpx.HTTPError as exc:
-            log.warning("Gemini unreachable: %s", type(exc).__name__)
-            raise LLMProviderError(f"LLM provider unreachable: {type(exc).__name__}") from exc
-        except (UnicodeError, ValueError, TypeError) as exc:
-            log.error("Could not build Gemini request: %s", type(exc).__name__)
-            raise LLMProviderError(f"LLM request could not be built: {type(exc).__name__}") from exc
-
-        try:
-            payload = resp.json()
-        except ValueError:
-            payload = None
-
-        if resp.status_code != 200:
-            self._raise_http_error(resp.status_code, payload)
-
-        return self._parse(payload, output_type, request)
+        body = self._body(request, output_type)
+        started = time.monotonic()
+        attempt = 0
+        while True:
+            attempt += 1
+            elapsed = time.monotonic() - started
+            timeout = max(5.0, min(float(self._timeout), RETRY_BUDGET_SECONDS - elapsed))
+            transient: str | None = None
+            delay: float | None = None
+            failure: Exception | None = None
+            try:
+                async with httpx.AsyncClient(timeout=timeout, transport=self._transport) as client:
+                    resp = await client.post(
+                        url, json=body, headers={"x-goog-api-key": self._api_key or ""}
+                    )
+            except httpx.TimeoutException as exc:
+                log.warning("Gemini timed out after %ss (task=%s)", timeout, request.task.value)
+                failure = LLMTimeoutError("LLM provider timed out")
+                failure.__cause__ = exc
+                transient = "timeout"
+            except httpx.HTTPError as exc:
+                log.warning("Gemini unreachable: %s", type(exc).__name__)
+                failure = LLMProviderError(f"LLM provider unreachable: {type(exc).__name__}")
+                failure.__cause__ = exc
+                transient = type(exc).__name__
+            except (UnicodeError, ValueError, TypeError) as exc:
+                log.error("Could not build Gemini request: %s", type(exc).__name__)
+                raise LLMProviderError(
+                    f"LLM request could not be built: {type(exc).__name__}"
+                ) from exc
+            else:
+                try:
+                    payload = resp.json()
+                except ValueError:
+                    payload = None
+                if resp.status_code == 200:
+                    return self._parse(payload, output_type, request)
+                if resp.status_code in _TRANSIENT_HTTP and not (
+                    resp.status_code == 429 and _is_daily_quota(payload)
+                ):
+                    transient = f"http {resp.status_code}"
+                    delay = _requested_delay(resp.headers, payload)
+                try:
+                    self._raise_http_error(resp.status_code, payload)
+                except LLMProviderError as exc:
+                    failure = exc
+            assert failure is not None
+            # Retry only transient provider failures, within attempts and the time budget.
+            if transient is None or attempt >= self._max_attempts:
+                raise failure
+            if delay is None:
+                delay = BACKOFF_SECONDS[min(attempt - 1, len(BACKOFF_SECONDS) - 1)]
+            if delay > MAX_RETRY_DELAY_SECONDS or (
+                time.monotonic() - started + delay + 5.0 > RETRY_BUDGET_SECONDS
+            ):
+                raise failure
+            log.warning(
+                "Gemini transient failure (%s, task=%s); retry %d/%d in %.1fs",
+                transient,
+                request.task.value,
+                attempt,
+                self._max_attempts - 1,
+                delay,
+            )
+            await self._sleep(delay)
 
     def _raise_http_error(self, status_code: int, payload: Any) -> None:
         status, reason, message = _error_summary(payload)

@@ -60,7 +60,12 @@ def ok_response(obj, finish="STOP", extra_parts=()):
     }
 
 
+async def _nosleep(_seconds):
+    return None
+
+
 def provider(handler, **kw):
+    kw.setdefault("sleep", _nosleep)
     return GeminiProvider(
         api_key=KEY, model="gemini-3.5-flash-lite", transport=httpx.MockTransport(handler), **kw
     )
@@ -397,3 +402,110 @@ async def test_response_with_exactly_50_claims_is_accepted():
         REQ, ClaimExtractionDraft
     )
     assert len(out.claims) == 50
+
+
+# --- transient-failure retry (production: first attempt failed, manual retry succeeded) ------
+
+
+def _sequence(*responses):
+    calls = []
+
+    def handler(r):
+        calls.append(r)
+        item = responses[min(len(calls) - 1, len(responses) - 1)]
+        if isinstance(item, Exception):
+            raise item
+        return item
+
+    return handler, calls
+
+
+def _quota(code, quota_id, delay=None):
+    details = [
+        {
+            "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+            "violations": [{"quotaId": quota_id}],
+        }
+    ]
+    if delay:
+        details.append({"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": delay})
+    return httpx.Response(
+        code, json={"error": {"code": code, "status": "RESOURCE_EXHAUSTED", "details": details}}
+    )
+
+
+OK = httpx.Response(200, json=ok_response(GOOD))
+
+
+@pytest.mark.parametrize(
+    "first",
+    [
+        err(503, "UNAVAILABLE"),
+        err(500, "INTERNAL"),
+        httpx.Response(502, content=b"bad gateway"),
+        err(504, "DEADLINE_EXCEEDED"),
+        _quota(429, "GenerateRequestsPerMinutePerProjectPerModel-FreeTier", "2s"),
+    ],
+)
+async def test_transient_failure_is_retried_and_the_call_succeeds(first):
+    handler, calls = _sequence(first, OK)
+    out = await provider(handler).generate_structured(REQ, ClaimExtractionDraft)
+    assert len(out.claims) == len(GOOD["claims"]) and len(calls) == 2
+
+
+async def test_timeout_and_connection_error_are_retried():
+    def boom(kind):
+        return kind("x", request=httpx.Request("POST", "https://g"))
+
+    for exc in (boom(httpx.ReadTimeout), boom(httpx.ConnectError)):
+        handler, calls = _sequence(exc, OK)
+        await provider(handler).generate_structured(REQ, ClaimExtractionDraft)
+        assert len(calls) == 2
+
+
+async def test_provider_requested_delay_is_respected():
+    waits = []
+
+    async def sleep(s):
+        waits.append(s)
+
+    r = httpx.Response(503, headers={"Retry-After": "4"}, json={"error": {"code": 503}})
+    handler, _ = _sequence(r, OK)
+    await provider(handler, sleep=sleep).generate_structured(REQ, ClaimExtractionDraft)
+    q = _quota(429, "GenerateRequestsPerMinutePerProjectPerModel-FreeTier", "7s")
+    handler, _ = _sequence(q, OK)
+    await provider(handler, sleep=sleep).generate_structured(REQ, ClaimExtractionDraft)
+    assert waits == [4.0, 7.0]
+
+
+async def test_retries_are_bounded_and_end_in_the_same_error():
+    handler, calls = _sequence(err(503, "UNAVAILABLE"))
+    with pytest.raises(LLMProviderError) as e:
+        await provider(handler).generate_structured(REQ, ClaimExtractionDraft)
+    assert len(calls) == 3 and e.value.retryable is True
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        _quota(429, "GenerateRequestsPerDayPerProjectPerModel-FreeTier", "40s"),  # daily quota
+        _quota(429, "GenerateRequestsPerMinutePerProjectPerModel-FreeTier", "120s"),  # too long
+        err(400, "INVALID_ARGUMENT", "API_KEY_INVALID"),
+        err(401, "UNAUTHENTICATED"),
+        err(403, "PERMISSION_DENIED"),
+        err(404, "NOT_FOUND"),
+        err(400, "INVALID_ARGUMENT", message="bad field"),
+    ],
+)
+async def test_permanent_failures_and_quota_exhaustion_are_not_retried(response):
+    handler, calls = _sequence(response, OK)
+    with pytest.raises(LLMProviderError):
+        await provider(handler).generate_structured(REQ, ClaimExtractionDraft)
+    assert len(calls) == 1
+
+
+async def test_invalid_model_output_is_not_retried_by_the_provider():
+    handler, calls = _sequence(httpx.Response(200, json={"candidates": []}), OK)
+    with pytest.raises(LLMInvalidResponseError):
+        await provider(handler).generate_structured(REQ, ClaimExtractionDraft)
+    assert len(calls) == 1
