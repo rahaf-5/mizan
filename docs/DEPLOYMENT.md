@@ -1,5 +1,9 @@
 # Deployment — public demo (Render, free plan)
 
+**Current public deployment (commit `54500a8`):**
+- Live demo (mizan-web): https://mizan-web-uuoy.onrender.com
+- API (mizan-api): https://mizan-api-l87e.onrender.com — health: https://mizan-api-l87e.onrender.com/api/v1/health/live · details: https://mizan-api-l87e.onrender.com/api/v1/health · API docs: https://mizan-api-l87e.onrender.com/docs
+
 Two services from `render.yaml` (Render Blueprint), no architecture change:
 
 | Service | What | Secrets |
@@ -20,14 +24,14 @@ Two services from `render.yaml` (Render Blueprint), no architecture change:
      It is baked into the JavaScript **at build time**: after changing it, redeploy mizan-web
      (Manual Deploy → *Clear build cache & deploy*). The build log prints
      `API base URL baked into the build: …` and the build fails if the value is not a clean https URL.
-4. Check: `https://<api>/api/v1/health` → `llm_provider: configured`, `quranpedia: configured`,
+4. Check: `https://<mizan-api URL>/api/v1/health` → `llm_provider: configured`, `quranpedia: configured`,
    `dorar_al_sunniyah: unavailable`. (`database: not_configured` is expected — no feature uses a DB.)
 
 ## Operating notes
 
 - **Free plan sleeps** the API after ~15 minutes without traffic; the first request then waits
   about a minute while it wakes. Before a demo or judging window,
-  open `https://<api>/api/v1/health/live` once, or keep it awake with an external uptime ping every
+  open `https://mizan-api-l87e.onrender.com/api/v1/health/live` once, or keep it awake with an external uptime ping every
   10 minutes. A paid instance removes the sleep.
 - **Gemini quota** is the key owner's quota; a free key can return HTTP 429 under load. Mizan shows
   this as a system error (retryable), never as a verdict.

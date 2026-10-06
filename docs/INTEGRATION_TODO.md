@@ -1,4 +1,8 @@
-# Integration TODO — what must be provided before connecting real services
+# Integration requirements record (historical)
+
+> This is the **original pre-integration checklist** (kept for traceability; the file name is
+> referenced from code comments). Unchecked boxes are the questions as first asked, not open work:
+> their answers are in `docs/SOURCE_VALIDATION.md`, and the current state is in the README.
 
 Nothing below has been assumed or invented. **Current state (2026-10-05):** Quranpedia is
 connected (Task 5a); Dorar is not connected by policy (its adapter raises

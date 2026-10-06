@@ -9,11 +9,11 @@ Two layers:
    Quranpedia API/dump, with a spy that must record **0 Dorar calls**. They need internet access
    and the Gemini key, so they are run on the developer's machine.
 
-## Automated results (2026-10-05, final commit)
+## Automated results (2026-10-06, commit `54500a8`)
 
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit/integration | `cd backend && pytest -q` | **372 passed** |
+| Backend unit/integration | `cd backend && pytest -q` | **393 passed** |
 | Backend lint/format | `ruff check . && ruff format --check .` | clean |
 | Shared contracts | `python -m app.domain.contracts_export --check` | snapshot up to date |
 | Real API response shapes | `pytest tests/test_api_samples.py` + frontend `tests/unit/api-samples.test.ts` | every field the UI reads exists in responses produced by the real FastAPI app |

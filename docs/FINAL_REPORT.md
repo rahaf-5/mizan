@@ -1,6 +1,6 @@
 # Mizan | ميزان — Final MVP Report (submission)
 
-**Date:** 2026-10-05 · **Spec:** `MIZAN_PRODUCT_SPEC.md` (approved MVP) · **Principle:** Claim First. Evidence Second. Judgment Last.
+**Date:** 2026-10-06 · **Live demo:** https://mizan-web-uuoy.onrender.com · **Repository:** https://github.com/rahaf-5/mizan · **Spec:** `MIZAN_PRODUCT_SPEC.md` (approved MVP) · **Principle:** Claim First. Evidence Second. Judgment Last.
 
 ## 1. What was built
 
@@ -42,11 +42,13 @@ Hadith/Dorar: unavailable by policy → `required_source_unavailable` (never cal
 
 ## 3. Verification results
 
-- **Automated (final tree):** backend **372 passed**; ruff + format clean; contract snapshot up to
+- **Automated (commit `54500a8`):** backend **393 passed**; ruff + format clean; contract snapshot up to
   date; frontend **113 passed**; typecheck + lint clean; production build OK.
 - **Real smoke (Gemini + Quranpedia):** `./scripts/smoke-all.sh` — all real smoke tests passed,
   `smoke_verification` **15/15, Dorar calls 0** on `8fdc4e4` (after the A03 fix; run on the developer's Mac,
   2026-10-05). Previously 15/15 on `92b11b1`. Earlier: extraction 4/4, retrieval 9/9.
+  The deployed commit `54500a8` adds only deployment configuration and a bounded retry of transient
+  Gemini errors; the full smoke suite was not re-run on it (automated suites pass; live demo checked by the team).
 - **Final evaluation (2026-10-05):** 49 text cases through the real API — status accuracy
   36/37 (97.3 %, 1 provider 429 excluded), extraction 6/7 claims, expected source 25/25,
   citations 88/88 traceable, gate 47/47; one real bug found by repeated runs and fixed. Full
@@ -91,7 +93,7 @@ Hadith/Dorar: unavailable by policy → `required_source_unavailable` (never cal
 | 7 | Source validation | `docs/SOURCE_VALIDATION.md` | complete |
 | 8 | Integration record | `docs/INTEGRATION_TODO.md` | complete |
 | 9 | Testing & 16-case matrix | `docs/TESTING.md` | complete |
-| 10 | Automated tests | `backend/tests/`, `frontend/tests/` | complete (372 + 113) |
+| 10 | Automated tests | `backend/tests/`, `frontend/tests/` | complete (393 + 113) |
 | 11 | Check scripts | `scripts/check.sh`, `scripts/smoke-all.sh` | complete |
 | 12 | Demo script | `docs/DEMO.md` | complete |
 | 13 | Screenshots (input/guidance/error/empty) | `docs/screenshots/` | complete |

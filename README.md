@@ -1,6 +1,13 @@
 # ميزان | Mizan — تحقّق قبل أن تنشر
 
-**Live demo:** _LIVE_URL_ (see [Deployment](docs/DEPLOYMENT.md)) · **Evaluation:** [`submission/EVALUATION_SUMMARY.md`](submission/EVALUATION_SUMMARY.md) · **Submission pack:** [`submission/`](submission/)
+**▶ Live demo: [https://mizan-web-uuoy.onrender.com](https://mizan-web-uuoy.onrender.com)** — Arabic, no sign-in. Try **فحص سريع** with
+`قال تعالى في سورة آل عمران: «إن الصفا والمروة من شعائر الله»`.
+(Free hosting: if the first request is slow, the API is waking up — wait ~1 minute and retry.)
+
+**Quick links:** [What it does](#what-problem-it-solves) · [Scope](#scope-of-this-version) ·
+[How it works](#how-it-works--where-ai-is-used-and-where-it-is-not-allowed-to-decide) ·
+[Evaluation](#evaluation-real-numbers-with-their-context) · [How to run](#setup--run) ·
+[Submission pack](submission/) · [Deployment](docs/DEPLOYMENT.md)
 
 > **Mizan is not an assistant that answers; it is a checker that refuses to judge without evidence.**
 > ميزان ليس مساعدًا يجيب؛ بل مدقق يرفض الحكم دون دليل.
@@ -73,13 +80,19 @@ More: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - Context: the dataset is team-built and small; tafsir/asbab expectations follow the source texts,
   some accept more than one honest status; **no expert religious review has taken place yet.**
 
+**Which commit was tested how:** the evaluation and the full real smoke suite ran on `8fdc4e4`.
+The production deployment runs `54500a8`, which adds only deployment configuration and a bounded
+retry of transient Gemini errors on top of it; on `54500a8` the automated suites pass
+(backend 393, frontend 113) and the live demo was checked end-to-end by the team. The
+evaluation numbers above were **not** re-run on `54500a8`.
+
 ### Verify our evaluation results without an API key
 
 The scorer is offline and deterministic; it recomputes every number from the recorded API
 responses. The Mushaf download is public (no key).
 
 ```bash
-git clone <this repo> mizan && cd mizan/backend
+git clone https://github.com/rahaf-5/mizan.git mizan && cd mizan/backend
 python3 -m venv .venv && source .venv/bin/activate && pip install -e .
 python -m app.cli.sync_quran_dump                              # official Mushaf 1, SHA-256 checked
 python ../evaluation/score_eval.py ../evaluation/results/raw.json
@@ -169,7 +182,7 @@ More scenarios: [`docs/DEMO.md`](docs/DEMO.md).
 ## Real end-to-end smoke tests (need the internet + the Gemini key)
 
 ```bash
-./scripts/smoke-all.sh                     # all of the below, in order (last result on 8fdc4e4: 15/15, Dorar 0)
+./scripts/smoke-all.sh                     # all of the below, in order (last full run: 8fdc4e4 → 15/15, Dorar 0)
 
 cd backend && source .venv/bin/activate
 python -m app.cli.smoke_claim_extraction   # Task 4: extraction only
