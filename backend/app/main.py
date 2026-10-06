@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from app.config import get_settings
-from app.core_logging import configure_logging
+from app.core_logging import configure_logging, get_logger
 
 
 def create_app() -> FastAPI:
@@ -21,6 +21,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(api_router)
+    # Not a secret: lets a deployment confirm which frontend origins may call the API.
+    get_logger("app").info("CORS allowed origins: %s", settings.cors_origin_list)
     return app
 
 

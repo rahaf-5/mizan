@@ -74,6 +74,32 @@ def test_cors_allows_frontend_origin():
     assert r.headers.get("access-control-allow-origin") == "http://localhost:3000"
 
 
+def test_cors_origin_pasted_with_trailing_slash_still_allows_the_production_preflight(monkeypatch):
+    """Deployment: CORS_ORIGINS copied from an address bar ("https://host/") must still match the
+    browser Origin ("https://host") for the POST the Quick Check sends first."""
+    monkeypatch.setenv("CORS_ORIGINS", " https://mizan-web.example/ ,https://other.example")
+    get_settings.cache_clear()
+    try:
+        c = TestClient(create_app())
+    finally:
+        get_settings.cache_clear()
+    r = c.options(
+        "/api/v1/claims/confirm",
+        headers={
+            "Origin": "https://mizan-web.example",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "accept, content-type",
+        },
+    )
+    assert r.status_code == 200
+    assert r.headers.get("access-control-allow-origin") == "https://mizan-web.example"
+    bad = c.options(
+        "/api/v1/claims/confirm",
+        headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "POST"},
+    )
+    assert bad.status_code == 400 and "access-control-allow-origin" not in bad.headers
+
+
 def test_leftover_ocr_settings_are_ignored_and_never_exposed(monkeypatch):
     """A stale GOOGLE_VISION_API_KEY / OCR_PROVIDER must not affect startup or health."""
     secret = "AIza" + "z" * 35

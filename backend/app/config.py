@@ -73,7 +73,10 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        # A browser Origin has no trailing slash; tolerate one pasted from the address bar.
+        return [
+            o.strip().rstrip("/") for o in self.cors_origins.split(",") if o.strip().rstrip("/")
+        ]
 
 
 @lru_cache
