@@ -1,5 +1,5 @@
 # Render Blueprint — public demo deployment (two services, free plan).
-#   mizan-api : FastAPI backend. Downloads + SHA-256-verifies the official Mushaf 1 dump at start,
+#   mizan-api : FastAPI backend. Downloads + verifies the official Mushaf 1 dump at build time,
 #               calls Gemini (server-side only) and the official Quranpedia API. Dorar stays blocked.
 #   mizan-web : static Next.js export; the browser calls mizan-api directly.
 # Secrets are never in this file: values marked `sync: false` are entered in the Render dashboard.
@@ -9,8 +9,10 @@ services:
     runtime: python
     plan: free
     rootDir: backend
-    buildCommand: pip install .
-    startCommand: python -m app.cli.sync_quran_dump && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # The official Mushaf dump is downloaded + verified at BUILD time (kept in the deploy), so a
+    # restart or a wake-up from sleep never depends on Quranpedia being reachable.
+    buildCommand: pip install . && python -m app.cli.sync_quran_dump
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/v1/health/live
     envVars:
       - key: PYTHON_VERSION

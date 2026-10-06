@@ -4,7 +4,7 @@ Two services from `render.yaml` (Render Blueprint), no architecture change:
 
 | Service | What | Secrets |
 |---|---|---|
-| `mizan-api` (Python web service) | FastAPI backend. At start it downloads and SHA-256-verifies the official Mushaf 1 dump, then serves the API. Calls Gemini and the official Quranpedia API server-side. Dorar stays blocked. | `GEMINI_API_KEY` (entered in the Render dashboard only) |
+| `mizan-api` (Python web service) | FastAPI backend. At build time it downloads and verifies the official Mushaf 1 dump (kept in the deploy); at start it only serves the API. Calls Gemini and the official Quranpedia API server-side. Dorar stays blocked. | `GEMINI_API_KEY` (entered in the Render dashboard only) |
 | `mizan-web` (static site) | Static export of the Next.js frontend (`MIZAN_STATIC_EXPORT=1`). The browser calls `mizan-api` directly. | none — `NEXT_PUBLIC_*` values are public by design |
 
 ## Steps
@@ -26,7 +26,7 @@ Two services from `render.yaml` (Render Blueprint), no architecture change:
 ## Operating notes
 
 - **Free plan sleeps** the API after ~15 minutes without traffic; the first request then waits
-  about a minute while it wakes and re-downloads the Mushaf dump. Before a demo or judging window,
+  about a minute while it wakes. Before a demo or judging window,
   open `https://<api>/api/v1/health/live` once, or keep it awake with an external uptime ping every
   10 minutes. A paid instance removes the sleep.
 - **Gemini quota** is the key owner's quota; a free key can return HTTP 429 under load. Mizan shows
