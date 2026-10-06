@@ -194,3 +194,29 @@ export function partialBreakdown(outcome: VerificationOutcome): { supported: str
   const out = { supported: uniq(supported), unproven: uniq(unproven), sources: uniq(sources) };
   return out.supported.length && out.unproven.length ? out : null;
 }
+
+/**
+ * Human-readable page for an evidence record, for «فتح السجل الأصلي».
+ * `source_url` is the provider's JSON API record, which is not meant for people. Quranpedia
+ * documents an official, human-readable ayah page (https://quranpedia.net/embed-docs):
+ * `https://quranpedia.net/embed?surah={s}&ayah={a}` with `type` (tafsir | asbab) and `book`
+ * to open the same book's content for that ayah. It is built ONLY from the record's own official
+ * address; anything else returns null (no link is shown, never a guessed one).
+ */
+const QURANPEDIA_PAGE = "https://quranpedia.net/embed";
+const PAGE_TYPE: Partial<Record<Evidence["source_type"], string>> = { tafsir: "tafsir", asbab_nuzul: "asbab" };
+
+export function readableRecordUrl(evidence: Evidence): string | null {
+  if (evidence.provider !== "quranpedia") return null;
+  const ok = (s: string, a: string) => Number(s) >= 1 && Number(s) <= 114 && Number(a) >= 1;
+  const quran = /^\/v1\/mushafs\/1\/(\d{1,3})\/(\d{1,3})$/.exec(evidence.source_address);
+  if (quran && evidence.source_type === "quran" && ok(quran[1], quran[2])) {
+    return `${QURANPEDIA_PAGE}?surah=${quran[1]}&ayah=${quran[2]}`;
+  }
+  const book = /^\/v1\/ayah\/(\d{1,3})\/(\d{1,3})\/book\/(\d+)$/.exec(evidence.source_address);
+  const type = PAGE_TYPE[evidence.source_type];
+  if (book && type && ok(book[1], book[2])) {
+    return `${QURANPEDIA_PAGE}?surah=${book[1]}&ayah=${book[2]}&type=${type}&book=${book[3]}`;
+  }
+  return null;
+}

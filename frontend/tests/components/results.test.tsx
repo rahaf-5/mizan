@@ -157,7 +157,9 @@ describe("Full Content results", () => {
     expect(within(region).getByText(QURAN_EVIDENCE.text)).toBeInTheDocument();
     expect(ev.textContent).not.toMatch(/ان الصفا والمروه/);
     expect(within(ev).getByText(QURAN_EVIDENCE.reference)).toBeInTheDocument();
-    expect(within(ev).getByRole("link", { name: "فتح السجل الأصلي" })).toHaveAttribute("href", QURAN_EVIDENCE.source_url);
+    const record = within(ev).getByRole("link", { name: "فتح السجل الأصلي" });
+    expect(record).toHaveAttribute("href", "https://quranpedia.net/embed?surah=2&ayah=158");
+    expect(record.getAttribute("href")).not.toContain("api.quranpedia.net");
     expect(within(card).getByRole("button", { name: "إخفاء الأدلة والتفاصيل" })).toHaveAttribute("aria-expanded", "true");
   });
 

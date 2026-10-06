@@ -1,5 +1,5 @@
 import { getDictionary } from "@/i18n";
-import { evidenceQuote } from "@/lib/verify/presentation";
+import { evidenceQuote, readableRecordUrl } from "@/lib/verify/presentation";
 import type { Evidence, EvidenceAssessment } from "@/lib/verify/types";
 
 const e = getDictionary().results.evidence;
@@ -11,6 +11,8 @@ const e = getDictionary().results.evidence;
  */
 export function EvidenceCard({ evidence, assessments }: { evidence: Evidence; assessments: EvidenceAssessment[] }) {
   const quote = evidenceQuote(evidence, assessments);
+  // Never link to the provider's raw JSON API record; only to its official human-readable page.
+  const recordUrl = readableRecordUrl(evidence);
   return (
     <article className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm" data-evidence-id={evidence.evidence_id}>
       <p>
@@ -26,16 +28,16 @@ export function EvidenceCard({ evidence, assessments }: { evidence: Evidence; as
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
         <dt className="text-[var(--color-muted)]">{e.reference}</dt>
         <dd>{evidence.reference}</dd>
-        <dt className="text-[var(--color-muted)]">{e.original}</dt>
-        <dd className="break-all">
-          {evidence.source_url ? (
-            <a href={evidence.source_url} target="_blank" rel="noopener noreferrer" className="text-[var(--color-brand)] underline underline-offset-4">
-              {e.openRecord}
-            </a>
-          ) : (
-            <span dir="ltr">{evidence.source_address}</span>
-          )}
-        </dd>
+        {recordUrl ? (
+          <>
+            <dt className="text-[var(--color-muted)]">{e.original}</dt>
+            <dd className="break-all">
+              <a href={recordUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--color-brand)] underline underline-offset-4">
+                {e.openRecord}
+              </a>
+            </dd>
+          </>
+        ) : null}
       </dl>
     </article>
   );
