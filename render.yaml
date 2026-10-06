@@ -26,14 +26,20 @@ services:
       - key: GEMINI_API_KEY
         sync: false # backend only — never in the frontend
       - key: CORS_ORIGINS
-        sync: false # the public URL of mizan-web, e.g. https://mizan-web.onrender.com
+        sync: false # EXACT origin of mizan-web as Render shows it (https://<host>, no path, no trailing slash)
 
   - type: web
     name: mizan-web
     runtime: static
     rootDir: frontend
-    buildCommand: npm ci && MIZAN_STATIC_EXPORT=1 npm run build
+    # NEXT_PUBLIC_API_BASE_URL is baked into the JS at BUILD time. Fail the build (instead of
+    # silently shipping http://localhost:8000) unless it is an https URL; print it in the build log.
+    buildCommand: >-
+      node -e "const u=process.env.NEXT_PUBLIC_API_BASE_URL||'';
+      if(!/^https:\/\/[^\s\/]+\/?$/.test(u)){console.error('NEXT_PUBLIC_API_BASE_URL must be https://<mizan-api host>, got '+JSON.stringify(process.env.NEXT_PUBLIC_API_BASE_URL));process.exit(1)}
+      console.log('API base URL baked into the build: '+u)"
+      && npm ci && MIZAN_STATIC_EXPORT=1 npm run build
     staticPublishPath: out
     envVars:
       - key: NEXT_PUBLIC_API_BASE_URL
-        sync: false # the public URL of mizan-api, e.g. https://mizan-api.onrender.com (no secret)
+        sync: false # EXACT URL of mizan-api as Render shows it, e.g. https://mizan-api-xxxx.onrender.com (no secret)

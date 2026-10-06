@@ -11,12 +11,15 @@ Two services from `render.yaml` (Render Blueprint), no architecture change:
 
 1. Push the repository to GitHub.
 2. Render → **New → Blueprint** → select the repository → Render reads `render.yaml`.
-3. When asked for the `sync: false` values:
-   - `GEMINI_API_KEY` → your key (backend only).
-   - `CORS_ORIGINS` → `https://mizan-web.onrender.com` (the web service URL).
-   - `NEXT_PUBLIC_API_BASE_URL` → `https://mizan-api.onrender.com` (the API service URL).
-   If Render gives a service a different URL (name already taken), put the real URLs in these two
-   variables and redeploy both services (`NEXT_PUBLIC_API_BASE_URL` is read at build time).
+3. Enter the `sync: false` values using the **exact URLs Render shows** for each service
+   (Render adds a suffix such as `-l87e` when a name is taken):
+   - `mizan-api` → `GEMINI_API_KEY` = your key (backend only).
+   - `mizan-api` → `CORS_ORIGINS` = the mizan-web origin, e.g. `https://mizan-web-xxxx.onrender.com`
+     (scheme + host only: no path, no trailing slash, no spaces).
+   - `mizan-web` → `NEXT_PUBLIC_API_BASE_URL` = the mizan-api URL, e.g. `https://mizan-api-xxxx.onrender.com`.
+     It is baked into the JavaScript **at build time**: after changing it, redeploy mizan-web
+     (Manual Deploy → *Clear build cache & deploy*). The build log prints
+     `API base URL baked into the build: …` and the build fails if the value is not a clean https URL.
 4. Check: `https://<api>/api/v1/health` → `llm_provider: configured`, `quranpedia: configured`,
    `dorar_al_sunniyah: unavailable`. (`database: not_configured` is expected — no feature uses a DB.)
 
@@ -30,3 +33,14 @@ Two services from `render.yaml` (Render Blueprint), no architecture change:
   this as a system error (retryable), never as a verdict.
 - Quranpedia allows 120 requests/minute and 10,000/day per IP.
 - Results live in the browser session; alternative wording needs the same API instance (in-memory).
+
+## Troubleshooting: "تعذّر تأكيد الادعاء بسبب مشكلة تقنية"
+
+- **No request at all in the mizan-api logs** → the browser is not calling mizan-api: the web build
+  contains a different or invalid `NEXT_PUBLIC_API_BASE_URL` (unset → `http://localhost:8000`, old
+  value, missing `https://`, trailing space). Check the mizan-web build log line above, fix the value,
+  *Clear build cache & deploy* mizan-web, then hard-reload the page.
+- **`OPTIONS … 400` in the mizan-api logs** → `CORS_ORIGINS` does not equal the mizan-web origin exactly.
+  Fix it on mizan-api (it redeploys on save).
+- **Request reaches mizan-api but takes ~1 minute / times out** → the free instance was asleep;
+  open `/api/v1/health/live` first and retry.
